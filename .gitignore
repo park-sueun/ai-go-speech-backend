@@ -11,6 +11,10 @@ build/
 *.ipr
 out/
 
+# Spring Boot
+application-local.properties
+application-secret.properties
+
 # Environment variables
 .env
 .env.dev

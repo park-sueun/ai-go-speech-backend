@@ -1,0 +1,29 @@
+services:
+  app:
+    image: myapp:${IMAGE_TAG}
+    restart: always
+    ports:
+      - "80:8080"
+    env_file:
+      - .env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  db:
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    env_file:
+      - .env.prod
+    volumes:
+      - prod_db_data:/var/lib/mysql
+
+volumes:
+  prod_db_data:

@@ -73,16 +73,16 @@ cp .env.example .env.prod
 # .env.prod 파일을 열어 실제 운영 값 입력 (운영 배포 시 비밀번호 등 반드시 확인 필요)
 ```
 
-**2. 이미지 빌드 및 태깅**
+**2. 전체 실행**
 
 ```bash
-docker build --target prod -t myapp:1.0.0 .
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ```
 
-**3. 전체 실행**
+**3. 로그 확인**
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod logs -f app
 ```
 
 ---
@@ -101,7 +101,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.
 
 ## API 문서
 
-앱 실행 후 아래 주소에서 Swagger UI를 확인할 수 있습니다.
+앱 실행 후 아래 주소에서 Swagger UI를 확인할 수 있습니다. (dev 환경에서만 활성화)
 
 ```
 http://localhost:8080/swagger-ui/index.html

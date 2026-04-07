@@ -1,7 +1,8 @@
 services:
   app:
     build:
-      target: prod
+      context: .
+      dockerfile: Dockerfile.dev
     ports:
       - "8080:8080"
       - "5005:5005"      # 원격 디버그 포트

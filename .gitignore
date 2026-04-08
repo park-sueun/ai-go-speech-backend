@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+!.idea/.gitignore
+*.iws
+*.iml
+*.ipr
+out/
+
+# Environment variables
+.env
+.env.dev
+.env.prod
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# WAR
+*.war

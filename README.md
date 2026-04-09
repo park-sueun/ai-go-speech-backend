@@ -1,6 +1,6 @@
-# ai-go-speech-backend
+# u-u-g-backend
 
-🗣️ AI 기반 실시간 음성 분석 및 말버릇 교정 백엔드 서버입니다.
+🗣️ 음어그(U-U-G) 백엔드 서버입니다.
 
 ---
 

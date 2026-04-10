@@ -1,24 +1,64 @@
 package com.aigo.speech.auth.service;
 
+import com.aigo.speech.auth.dto.OAuthAttributes;
+import com.aigo.speech.user.entity.User;
+import com.aigo.speech.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+
+    private final UserRepository userRepository;
+
     @Override
-    public OAuth2User loadUser(OAuth2UserRequest request)
-            throws OAuth2AuthenticationException {
+    @Transactional
+    public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
+        OAuth2User oAuth2User = super.loadUser(request);
 
-        OAuth2User user = super.loadUser(request);
+        String registrationId = request.getClientRegistration().getRegistrationId();
+        String userNameAttributeName = request.getClientRegistration()
+                .getProviderDetails()
+                .getUserInfoEndpoint()
+                .getUserNameAttributeName();
 
-        String provider = request.getClientRegistration().getRegistrationId();
+        OAuthAttributes attributes = OAuthAttributes.of(registrationId, oAuth2User.getAttributes());
 
-        System.out.println("provider = " + provider);
-        System.out.println("attributes = " + user.getAttributes());
+        User user = saveOrUpdate(attributes);
 
-        return user;
+        Map<String, Object> userAttributes = Map.of(
+                userNameAttributeName, attributes.getProviderId(),
+                "email", user.getEmail(),
+                "nickname", user.getNickname(),
+                "role", user.getRole().name(),
+                "userId", user.getId()
+        );
+
+        return new DefaultOAuth2User(
+                List.of(new OAuth2UserAuthority("ROLE_" + user.getRole().name(), userAttributes)),
+                userAttributes,
+                userNameAttributeName
+        );
+    }
+
+    private User saveOrUpdate(OAuthAttributes attributes) {
+        return userRepository
+                .findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
+                .map(user -> {
+                    user.update(attributes.getNickname(), attributes.getProfileImage());
+                    return user;
+                })
+                .orElseGet(() -> userRepository.save(attributes.toEntity()));
     }
 }

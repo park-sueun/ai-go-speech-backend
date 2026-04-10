@@ -12,6 +12,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     logging:
       driver: json-file
       options:
@@ -27,6 +29,12 @@ services:
       - .env.prod
     volumes:
       - prod_db_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - app-network
 
 volumes:
   prod_db_data:

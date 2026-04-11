@@ -25,7 +25,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     @Override
     @Transactional
     public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
-        OAuth2User oAuth2User = super.loadUser(request);
+        OAuth2User oAuth2User = fetchOAuth2User(request);
 
         String registrationId = request.getClientRegistration().getRegistrationId();
         String userNameAttributeName = request.getClientRegistration()
@@ -50,6 +50,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 userAttributes,
                 userNameAttributeName
         );
+    }
+
+    protected OAuth2User fetchOAuth2User(OAuth2UserRequest request) {
+        return super.loadUser(request);
     }
 
     private User saveOrUpdate(OAuthAttributes attributes) {

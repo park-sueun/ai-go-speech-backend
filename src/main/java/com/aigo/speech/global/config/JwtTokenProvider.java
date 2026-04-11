@@ -18,11 +18,11 @@ public class JwtTokenProvider {
   private final long refreshTokenExpiration;
 
   public JwtTokenProvider(@Value("${jwt.secret}") String secret,
-      @Value("${jwt.access-expiration}") long accessTokenExpiration,
-      @Value("${jwt.refresh-expiration}") long refreshTokenExpiration) {
+      @Value("${jwt.access-expiration-min}") long accessTokenMin,
+      @Value("${jwt.refresh-expiration-days}") long refreshTokenDays) {
     this.key = Keys.hmacShaKeyFor(secret.getBytes());
-    this.accessTokenExpiration = accessTokenExpiration;
-    this.refreshTokenExpiration = refreshTokenExpiration;
+    this.accessTokenExpiration = accessTokenMin * 60 * 1000L;
+    this.refreshTokenExpiration = refreshTokenDays * 24 * 60 * 60 * 1000L;
   }
 
   public String createAccessToken(String email) { // access token 생성

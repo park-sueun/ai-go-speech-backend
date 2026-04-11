@@ -21,7 +21,7 @@ public class UserService {
   private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
   @Transactional
-  public void Signup(SignupRequest dto){ // 회원가입
+  public void signup(SignupRequest dto){ // 회원가입
     if(userRepository.existsByEmail(dto.getEmail())){
       throw new RuntimeException("이미 존재하는 이메일입니다.");
     }
@@ -33,7 +33,7 @@ public class UserService {
   }
 
   @Transactional
-  public TokenResponse Login(LoginRequest dto){
+  public TokenResponse login(LoginRequest dto){
     User user = userRepository.findByEmail(dto.getEmail())
         .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
     if(!bCryptPasswordEncoder.matches(dto.getPassword(), user.getPassword())){
@@ -74,11 +74,10 @@ public class UserService {
   }
 
   @Transactional
-  public void logout(String email) {
+  public void logout(String accessToken) {
+    String email = jwtTokenProvider.getEmail(accessToken);
     User user = userRepository.findByEmail(email)
         .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
-
     user.updateRefreshToken(null); // 세션 만료
   }
-
 }

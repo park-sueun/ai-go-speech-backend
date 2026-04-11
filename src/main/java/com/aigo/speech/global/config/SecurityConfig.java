@@ -1,5 +1,6 @@
 package com.aigo.speech.global.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,10 +8,14 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+  private final JwtTokenProvider jwtTokenProvider;
 
   @Bean
   public BCryptPasswordEncoder bCryptPasswordEncoder() {
@@ -21,14 +26,16 @@ public class SecurityConfig {
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
         .csrf(csrf -> csrf.disable())
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // jwt 토큰 사용
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // jwt 토큰 사용
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/user/jwt/**", // jwt
+            .requestMatchers("/api/auth/**", // jwt
                 "/v3/api-docs/**", // swagger 설정
                 "/swagger-ui/**",
                 "/swagger-ui.html").permitAll()
-                .anyRequest().authenticated()
-        );
+            .anyRequest().authenticated()
+        )
+        .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),UsernamePasswordAuthenticationFilter.class);
     return http.build();
   }
 }

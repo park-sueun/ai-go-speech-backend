@@ -1,5 +1,7 @@
 package com.aigo.speech.global.config;
 
+import com.aigo.speech.auth.jwt.JwtAuthenticationFilter;
+import com.aigo.speech.auth.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +32,7 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // jwt 토큰 사용
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**", // jwt
+                "/api/user/**",
                 "/v3/api-docs/**", // swagger 설정
                 "/swagger-ui/**",
                 "/swagger-ui.html").permitAll()

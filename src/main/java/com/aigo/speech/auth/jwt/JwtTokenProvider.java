@@ -1,4 +1,4 @@
-package com.aigo.speech.global.config;
+package com.aigo.speech.auth.jwt;
 
 
 import io.jsonwebtoken.Jwts;

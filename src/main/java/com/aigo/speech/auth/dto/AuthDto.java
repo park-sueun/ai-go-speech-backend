@@ -1,10 +1,10 @@
-package com.aigo.speech.user.dto;
+package com.aigo.speech.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-public class UserDto {
+public class AuthDto {
 
   @Getter @Setter
   public static class SignupRequest{

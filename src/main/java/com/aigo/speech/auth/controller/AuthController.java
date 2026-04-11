@@ -38,9 +38,9 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<String> logout(@RequestHeader(value = "Authorization", required = false) String bearerToken) { // 토큰으로 로그아웃
+  public ResponseEntity<String> logout(@RequestHeader(value = "Authorization") String bearerToken) { // 토큰으로 로그아웃
 
-    if(bearerToken == null || !bearerToken.startsWith("Bearer ")) {
+    if(!bearerToken.startsWith("Bearer ")) {
       return ResponseEntity.badRequest().body("유효하지 않은 인증 헤더입니다.");
     }
 

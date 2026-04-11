@@ -16,11 +16,6 @@ out/
 .env.dev
 .env.prod
 
-# Environment variables
-.env
-.env.dev
-.env.prod
-
 # Logs
 *.log
 logs/

@@ -96,11 +96,7 @@ public class MailVerificationService {
 
         String content = buildEmailContent(code);
 
-        try {
-            mailService.sendHtmlMail(email, subject, content);
-        } catch (Exception e) {
-            throw new MailVerificationException("이메일 인증 코드 메일 발송 실패: " + e.getMessage());
-        }
+        mailService.sendHtmlMail(email, subject, content);
     }
 
     public void verifyCode(String email, String code) {

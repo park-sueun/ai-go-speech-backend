@@ -3,12 +3,15 @@ package com.aigo.speech.mail.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MailService {
@@ -28,15 +31,14 @@ public class MailService {
             message.setTo(to);
             message.setSubject(subject);
             message.setText(text);
-
             mailSender.send(message);
-
         } catch (Exception e) {
             throw new RuntimeException("메일 전송 실패", e);
         }
     }
 
-    // HTML 메일
+    // HTML 메일 (비동기)
+    @Async("mailExecutor")
     public void sendHtmlMail(String to, String subject, String htmlContent) {
 
         try {
@@ -46,12 +48,11 @@ public class MailService {
             helper.setFrom(from);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(htmlContent, true); // HTML
-
+            helper.setText(htmlContent, true);
+            
             mailSender.send(message);
-
         } catch (MessagingException e) {
-            throw new RuntimeException("메일 전송 실패", e);
+            log.error("[Mail] 메일 전송 실패 to={}, subject={}", to, subject, e);
         }
     }
 }

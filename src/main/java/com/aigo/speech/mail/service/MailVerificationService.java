@@ -2,6 +2,7 @@ package com.aigo.speech.mail.service;
 
 import com.aigo.speech.mail.exception.MailVerificationException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 

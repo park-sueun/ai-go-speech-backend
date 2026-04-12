@@ -101,7 +101,7 @@ public class MailVerificationService {
 
     public void verifyCode(String email, String code) {
         String key = PREFIX + email;
-        String storedCode = redisTemplate.opsForValue().getAndDelete(key);
+        String storedCode = redisTemplate.opsForValue().get(key);
 
         if (storedCode == null) {
             throw new MailVerificationException("인증 코드가 만료되었습니다.");
@@ -109,6 +109,8 @@ public class MailVerificationService {
         if (!storedCode.equals(code)) {
             throw new MailVerificationException("인증 코드가 일치하지 않습니다.");
         }
+
+        redisTemplate.delete(key);
     }
 
     private String generateCode() {

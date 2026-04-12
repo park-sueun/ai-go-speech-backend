@@ -1,5 +1,9 @@
 package com.aigo.speech.auth.service;
 
+import com.aigo.speech.auth.dto.ChangePasswordRequest;
+import com.aigo.speech.auth.exception.InvalidPasswordException;
+import com.aigo.speech.auth.exception.PasswordMismatchException;
+import com.aigo.speech.auth.exception.SamePasswordException;
 import com.aigo.speech.auth.jwt.PasswordResetTokenProvider;
 import com.aigo.speech.mail.server.MailServer;
 import com.aigo.speech.mail.service.MailTemplateService;
@@ -62,18 +66,36 @@ public class PasswordResetService {
         log.info("[PasswordResetService] 비밀번호 초기화 완료 → {}", email);
     }
 
+    /**
+     * 로그인 유저 비밀번호 변경
+     * @param user
+     * @param currentPassword
+     * @param newPassword
+     * @param confirmPassword
+     */
     @Transactional
-    public void changePassword(User user, String currentPassword, String newPassword) {
+    public void changePassword(String email, String currentPassword, String newPassword, String confirmPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다."));
 
-        // 1. 기존 비밀번호 검증
+        // 현재 비밀번호 일치 여부 검증
         if (!bCryptPasswordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("현재 비밀번호가 일치하지 않습니다.");
+            throw new InvalidPasswordException("현재 비밀번호가 올바르지 않습니다.");
         }
 
-        // 2. 새 비밀번호 암호화 후 변경
+        // 비밀번호 확인 검증
+        if (!newPassword.equals(confirmPassword)) {
+            throw new PasswordMismatchException("새 비밀번호가 일치하지 않습니다.");
+        }
+
+        // 현재 비밀번호와 새 비밀번호 동일 여부 검증
+        if (bCryptPasswordEncoder.matches(newPassword, user.getPassword())) {
+            throw new SamePasswordException("현재 비밀번호와 동일한 비밀번호로 변경할 수 없습니다.");
+        }
+
         user.changePassword(bCryptPasswordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        log.info("[PasswordResetService] 비밀번호 변경 완료 → {}", user.getEmail());
+        log.info("[PasswordChangeService] 비밀번호 변경 완료 → {}", email);
     }
 }

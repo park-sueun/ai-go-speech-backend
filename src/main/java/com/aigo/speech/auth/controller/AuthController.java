@@ -1,8 +1,6 @@
 package com.aigo.speech.auth.controller;
 
-import com.aigo.speech.auth.dto.EmailVerificationConfirmRequest;
-import com.aigo.speech.auth.dto.EmailVerificationRequest;
-import com.aigo.speech.auth.dto.PasswordResetDto;
+import com.aigo.speech.auth.dto.*;
 import com.aigo.speech.auth.service.EmailVerificationService;
 import com.aigo.speech.auth.service.PasswordResetService;
 import com.aigo.speech.global.dto.ApiResponse;
@@ -10,10 +8,11 @@ import jakarta.validation.Valid;
 import com.aigo.speech.auth.dto.AuthDto.LoginRequest;
 import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
 import com.aigo.speech.auth.dto.AuthDto.TokenResponse;
-import com.aigo.speech.auth.dto.TokenRequest;
 import com.aigo.speech.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import io.swagger.v3.oas.annotations.Parameter;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -93,6 +92,21 @@ public class AuthController {
     ) {
         passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
         
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 패스워드 변경
+    @PatchMapping("/password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @Parameter(hidden = true) @AuthenticationPrincipal String email,
+            @RequestBody @Valid ChangePasswordRequest request
+    ) {
+        passwordResetService.changePassword(
+                email,
+                request.currentPassword(),
+                request.newPassword(),
+                request.confirmPassword()
+        );
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

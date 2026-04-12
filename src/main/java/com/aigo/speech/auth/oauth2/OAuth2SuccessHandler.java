@@ -1,0 +1,50 @@
+package com.aigo.speech.auth.oauth2;
+
+import com.aigo.speech.auth.jwt.JwtTokenProvider;
+import com.aigo.speech.user.entity.User;
+import com.aigo.speech.user.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+@Component
+@RequiredArgsConstructor
+public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
+
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
+
+    @Override
+    @Transactional
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                        Authentication authentication) throws IOException {
+        OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+        String email = (String) oAuth2User.getAttributes().get("email");
+
+        String accessToken = jwtTokenProvider.createAccessToken(email);
+        String refreshToken = jwtTokenProvider.createRefreshToken(email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        user.updateRefreshToken(refreshToken);
+
+        // 프론트엔드 콜백 URL로 JWT 전달
+        String redirectUrl = baseUrl + "/oauth2/callback"
+                + "?accessToken=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8)
+                + "&refreshToken=" + URLEncoder.encode(refreshToken, StandardCharsets.UTF_8);
+        response.sendRedirect(redirectUrl);
+    }
+}

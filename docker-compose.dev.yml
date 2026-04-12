@@ -12,6 +12,11 @@ services:
       - .env.dev
     volumes:
       - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   db:
     ports:
@@ -23,6 +28,11 @@ services:
       - .env.dev
     volumes:
       - dev_db_data:/var/lib/mysql
+
+  redis:
+    image: redis
+    networks:
+      - app-network
 
 volumes:
   dev_db_data:

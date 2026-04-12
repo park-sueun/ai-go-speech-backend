@@ -12,9 +12,7 @@ build/
 out/
 
 # Environment variables
-.env
-.env.dev
-.env.prod
+.env.*
 
 # Logs
 *.log

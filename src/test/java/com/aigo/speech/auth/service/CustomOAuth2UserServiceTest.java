@@ -10,6 +10,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.UUID;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -87,7 +89,7 @@ class CustomOAuth2UserServiceTest {
                 .profileImage("http://picture.url")
                 .role(Role.USER)
                 .build();
-        ReflectionTestUtils.setField(savedUser, "id", 1L);
+        ReflectionTestUtils.setField(savedUser, "id", UUID.randomUUID());
 
         given(userRepository.findByProviderAndProviderId(Provider.GOOGLE, "google-123"))
                 .willReturn(Optional.empty());
@@ -111,7 +113,7 @@ class CustomOAuth2UserServiceTest {
                 .profileImage("http://old-picture.url")
                 .role(Role.USER)
                 .build();
-        ReflectionTestUtils.setField(existingUser, "id", 1L);
+        ReflectionTestUtils.setField(existingUser, "id", UUID.randomUUID());
 
         given(userRepository.findByProviderAndProviderId(Provider.GOOGLE, "google-123"))
                 .willReturn(Optional.of(existingUser));
@@ -134,7 +136,7 @@ class CustomOAuth2UserServiceTest {
                 .role(Role.USER)
                 .build();
 
-        ReflectionTestUtils.setField(savedUser, "id", 1L);
+        ReflectionTestUtils.setField(savedUser, "id", UUID.randomUUID());
         given(userRepository.findByProviderAndProviderId(Provider.GOOGLE, "google-123"))
                 .willReturn(Optional.empty());
         given(userRepository.save(any(User.class))).willReturn(savedUser);

@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 
 @Entity
 @Getter
@@ -37,5 +38,9 @@ public class User {
 
   public void updateRefreshToken(String refreshToken) { // 리프레시 토큰 업데이트
     this.refreshToken = refreshToken;
+  }
+
+  public void changePassword(String encodedPassword) {
+      this.password = encodedPassword;
   }
 }

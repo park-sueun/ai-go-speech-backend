@@ -1,6 +1,8 @@
 package com.aigo.speech.mail.service;
 
+import com.aigo.speech.auth.service.EmailVerificationService;
 import com.aigo.speech.mail.exception.MailVerificationException;
+import com.aigo.speech.mail.server.MailServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,10 +23,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class MailServiceTest {
+class MailServerTest {
 
     @Mock
-    private MailService mailService;
+    private MailServer mailServer;
 
     @Mock
     private StringRedisTemplate redisTemplate;
@@ -33,7 +35,7 @@ class MailServiceTest {
     private ValueOperations<String, String> valueOperations;
 
     @InjectMocks
-    private MailVerificationService mailVerificationService;
+    private EmailVerificationService emailVerificationService;
 
     private static final String PREFIX = "email:verification:";
     private static final String EMAIL = "user@example.com";
@@ -47,10 +49,10 @@ class MailServiceTest {
     @Test
     @DisplayName("인증 코드 전송 시 Redis에 코드가 저장되고 메일이 발송된다")
     void sendVerificationCode_savesCodeToRedisAndSendsMail() {
-        mailVerificationService.sendVerificationCode(EMAIL);
+        emailVerificationService.sendVerificationCode(EMAIL);
 
         verify(valueOperations).set(eq(REDIS_KEY), anyString(), anyLong(), eq(TimeUnit.MINUTES));
-        verify(mailService).sendHtmlMail(eq(EMAIL), anyString(), anyString());
+        verify(mailServer).sendHtmlMail(eq(EMAIL), anyString(), anyString());
     }
 
     @Test

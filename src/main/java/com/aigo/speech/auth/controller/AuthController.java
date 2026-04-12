@@ -2,8 +2,10 @@ package com.aigo.speech.auth.controller;
 
 import com.aigo.speech.auth.dto.EmailVerificationConfirmRequest;
 import com.aigo.speech.auth.dto.EmailVerificationRequest;
+import com.aigo.speech.auth.dto.PasswordResetDto;
+import com.aigo.speech.auth.service.EmailVerificationService;
+import com.aigo.speech.auth.service.PasswordResetService;
 import com.aigo.speech.global.dto.ApiResponse;
-import com.aigo.speech.mail.service.MailVerificationService;
 import jakarta.validation.Valid;
 import com.aigo.speech.auth.dto.AuthDto.LoginRequest;
 import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
@@ -13,11 +15,6 @@ import com.aigo.speech.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -25,7 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final AuthService authService;
-  private final MailVerificationService mailVerificationService;
+  private final EmailVerificationService emailVerificationService;
+  private final PasswordResetService passwordResetService;
 
   @PostMapping("/signup")
   public ResponseEntity<String> signup(@RequestBody SignupRequest request) {
@@ -61,7 +59,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> sendVerificationCode(
             @RequestBody @Valid EmailVerificationRequest request
     ) {
-        mailVerificationService.sendVerificationCode(request.email());
+        emailVerificationService.sendVerificationCode(request.email());
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
@@ -70,11 +68,31 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> verifyCode(
             @RequestBody @Valid EmailVerificationConfirmRequest request
     ) {
-        mailVerificationService.verifyCode(
+        emailVerificationService.verifyCode(
                 request.email(),
                 request.code()
         );
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 
+    // 패스워드 초기화 메일 발송
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @RequestBody @Valid PasswordResetDto.ForgotPasswordRequest request
+    ) {
+        passwordResetService.sendPasswordResetEmail(request.getEmail());
+        
+        // 이메일 존재 여부 무관하게 동일 응답
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 패스워드 초기화
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @RequestBody @Valid PasswordResetDto.ResetPasswordRequest request
+    ) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

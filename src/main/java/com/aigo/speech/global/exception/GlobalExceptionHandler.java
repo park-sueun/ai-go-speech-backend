@@ -3,6 +3,7 @@ package com.aigo.speech.global.exception;
 import com.aigo.speech.auth.exception.InvalidTokenException;
 import com.aigo.speech.auth.exception.TokenExpiredException;
 import com.aigo.speech.global.dto.ApiResponse;
+import com.aigo.speech.mail.exception.MailSendException;
 import com.aigo.speech.mail.exception.MailVerificationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,5 +36,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ApiResponse<?>> handleInvalid(InvalidTokenException e) {
         return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(MailSendException.class)
+    public ResponseEntity<ApiResponse<?>> handleMailSendException(MailSendException e) {
+        return ResponseEntity.internalServerError().body(ApiResponse.fail(e.getMessage()));
     }
 }

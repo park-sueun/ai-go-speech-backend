@@ -9,14 +9,13 @@ import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 @Service
-@RequiredArgsConstructor
 public class MailVerificationService {
 
     private final MailService mailService;
     private final StringRedisTemplate redisTemplate;
+    private final int expireMinutes;
 
     private static final String PREFIX = "email:verification:";
-    private static final int EXPIRE_TIME = 3;
 
     private static final int AUTH_CODE_LENGTH = 6;
     private static final char[] CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".toCharArray();
@@ -86,7 +85,22 @@ public class MailVerificationService {
         </table>
         """;
 
-    public void sendVerificationCode(String email) {
+    public MailVerificationService(MailService mailService, StringRedisTemplate redisTemplate, @Value("${spring.mail.auth-code-expiration-min}") int expireMinutes) {
+        this.mailService = mailService;
+        this.redisTemplate = redisTemplate;
+        this.expireMinutes = expireMinutes;
+    }
+
+    private static final String PASSWORD_VERIFICATION_TEMPLATE = """
+            비밀번호 재설정을 요청하셨습니다.
+                        아래 링크를 클릭하여 비밀번호를 변경해 주세요. (1시간 유효)
+            
+                        https://example.com/reset-password?token={token}
+            
+                        본인이 요청하지 않은 경우 이 메일을 무시하세요.
+            """;
+
+    public void sendEmailVerificationCode(String email) {
         String key = PREFIX + email;
         String code = generateCode();
 

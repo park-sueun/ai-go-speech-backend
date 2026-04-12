@@ -21,19 +21,20 @@ DB만 Docker로 띄우고 앱은 IDE 또는 Gradle로 직접 실행합니다.
 **1. 환경변수 파일 준비**
 
 ```bash
-cp .env.example .env.dev
+cp .env.example .env.local
 # .env.dev 파일을 열어 DB 접속 정보 입력
 ```
 
 **2. DB 컨테이너 실행**
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev up -d db
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.local up -d db
 ```
 
 **3. 앱 실행**
 
 ```bash
+export $(grep -v '^#' .env.local | xargs)
 ./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 

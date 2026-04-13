@@ -6,6 +6,8 @@ import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
 import com.aigo.speech.auth.dto.AuthDto.TokenResponse;
 import com.aigo.speech.auth.dto.TokenRequest;
 import com.aigo.speech.auth.jwt.JwtTokenProvider;
+import com.aigo.speech.user.entity.Provider;
+import com.aigo.speech.user.entity.Role;
 import com.aigo.speech.user.entity.User;
 import com.aigo.speech.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,8 @@ public class AuthService {
         .email(dto.getEmail())
         .password(bCryptPasswordEncoder.encode(dto.getPassword()))
         .username(dto.getUsername())
+        .provider(Provider.LOCAL)
+        .role(Role.USER)
         .build());
   }
 

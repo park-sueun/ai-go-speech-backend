@@ -4,12 +4,14 @@ import com.aigo.speech.auth.dto.*;
 import com.aigo.speech.auth.service.EmailVerificationService;
 import com.aigo.speech.auth.service.PasswordResetService;
 import com.aigo.speech.global.dto.ApiResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import com.aigo.speech.auth.dto.AuthDto.LoginRequest;
 import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
 import com.aigo.speech.auth.dto.AuthDto.TokenResponse;
 import com.aigo.speech.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -42,14 +44,23 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<String> logout(@RequestHeader(value = "Authorization") String bearerToken) { // 토큰으로 로그아웃
-
-    if(!bearerToken.startsWith("Bearer ")) {
+  public ResponseEntity<String> logout(@RequestHeader(value = "Authorization") String bearerToken,
+                                       HttpServletResponse httpResponse) {
+    if (!bearerToken.startsWith("Bearer ")) {
       return ResponseEntity.badRequest().body("유효하지 않은 인증 헤더입니다.");
     }
 
     String accessToken = bearerToken.substring(7);
     authService.logout(accessToken);
+
+    // OAuth2 로그인 쿠키 클리어
+    ResponseCookie clearAccess = ResponseCookie.from("accessToken", "")
+        .httpOnly(true).secure(true).sameSite("Lax").path("/").maxAge(0).build();
+    ResponseCookie clearRefresh = ResponseCookie.from("refreshToken", "")
+        .httpOnly(true).secure(true).sameSite("Lax").path("/").maxAge(0).build();
+    httpResponse.addHeader("Set-Cookie", clearAccess.toString());
+    httpResponse.addHeader("Set-Cookie", clearRefresh.toString());
+
     return ResponseEntity.ok("로그아웃 성공");
   }
 

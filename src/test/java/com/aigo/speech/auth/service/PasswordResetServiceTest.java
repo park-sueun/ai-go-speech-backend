@@ -72,7 +72,7 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("존재하는 이메일로 요청 시 재설정 메일이 발송된다")
     void sendPasswordResetEmail_whenUserExists_sendsResetEmail() {
-        User user = User.builder().email(EMAIL).password("encoded").username("tester").build();
+        User user = User.builder().email(EMAIL).password("encoded").build();
         given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
         given(passwordResetTokenProvider.generateToken(EMAIL)).willReturn("reset-token");
         given(mailTemplateService.renderPasswordReset(anyString(), eq(30))).willReturn("<html/>");
@@ -93,7 +93,7 @@ class PasswordResetServiceTest {
         given(passwordResetTokenProvider.validateAndGetEmail("bad-token"))
                 .willThrow(new InvalidTokenException("유효하지 않은 토큰입니다."));
 
-        assertThatThrownBy(() -> passwordResetService.resetPassword("bad-token", "newPass"))
+        assertThatThrownBy(() -> passwordResetService.resetPassword("bad-token", "newPass", "newPass"))
                 .isInstanceOf(InvalidTokenException.class);
 
         verify(userRepository, never()).save(any());
@@ -105,7 +105,7 @@ class PasswordResetServiceTest {
         given(passwordResetTokenProvider.validateAndGetEmail("valid-token")).willReturn(EMAIL);
         given(userRepository.findByEmail(EMAIL)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> passwordResetService.resetPassword("valid-token", "newPass"))
+        assertThatThrownBy(() -> passwordResetService.resetPassword("valid-token", "newPass", "newPass"))
                 .isInstanceOf(UsernameNotFoundException.class)
                 .hasMessage("존재하지 않는 사용자입니다.");
     }
@@ -113,12 +113,12 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("유효한 토큰으로 비밀번호 재설정 시 새 비밀번호로 변경된다")
     void resetPassword_withValidToken_updatesPassword() {
-        User user = User.builder().email(EMAIL).password("old_enc").username("tester").build();
+        User user = User.builder().email(EMAIL).password("old_enc").build();
         given(passwordResetTokenProvider.validateAndGetEmail("valid-token")).willReturn(EMAIL);
         given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.encode("newPass")).willReturn("new_enc");
 
-        passwordResetService.resetPassword("valid-token", "newPass");
+        passwordResetService.resetPassword("valid-token", "newPass", "newPass");
 
         assertThat(user.getPassword()).isEqualTo("new_enc");
         verify(userRepository).save(user);
@@ -129,7 +129,7 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("현재 비밀번호가 일치하지 않으면 예외가 발생한다")
     void changePassword_withWrongCurrentPassword_throwsException() {
-        User user = User.builder().email(EMAIL).password("enc").username("tester").build();
+        User user = User.builder().email(EMAIL).password("enc").build();
         given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches("wrong", "enc")).willReturn(false);
 
@@ -142,7 +142,7 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("새 비밀번호와 확인 비밀번호가 다르면 예외가 발생한다")
     void changePassword_withMismatchedNewPasswords_throwsException() {
-        User user = User.builder().email(EMAIL).password("enc").username("tester").build();
+        User user = User.builder().email(EMAIL).password("enc").build();
         given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches("current", "enc")).willReturn(true);
 
@@ -155,7 +155,7 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("현재 비밀번호가 일치하면 새 비밀번호로 변경된다")
     void changePassword_withCorrectCurrentPassword_updatesPassword() {
-        User user = User.builder().email(EMAIL).password("enc").username("tester").build();
+        User user = User.builder().email(EMAIL).password("enc").build();
         given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches("current", "enc")).willReturn(true);
         given(bCryptPasswordEncoder.matches("newPass", "enc")).willReturn(false);

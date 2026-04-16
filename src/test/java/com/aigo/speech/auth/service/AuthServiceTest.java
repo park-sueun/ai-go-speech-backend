@@ -5,7 +5,9 @@ import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
 import com.aigo.speech.auth.dto.AuthDto.TokenResponse;
 import com.aigo.speech.auth.dto.TokenRequest;
 import com.aigo.speech.auth.jwt.JwtTokenProvider;
+import com.aigo.speech.user.entity.Profile;
 import com.aigo.speech.user.entity.User;
+import com.aigo.speech.user.repository.ProfileRepository;
 import com.aigo.speech.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,9 @@ class AuthServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private ProfileRepository profileRepository;
+
+    @Mock
     private JwtTokenProvider jwtTokenProvider;
 
     @Mock
@@ -54,7 +59,7 @@ class AuthServiceTest {
         SignupRequest request = new SignupRequest();
         request.setEmail(EMAIL);
         request.setPassword(PASSWORD);
-        request.setUsername("tester");
+        request.setNickname("tester");
         given(userRepository.existsByEmail(EMAIL)).willReturn(true);
 
         assertThatThrownBy(() -> authService.signup(request))
@@ -70,7 +75,7 @@ class AuthServiceTest {
         SignupRequest request = new SignupRequest();
         request.setEmail(EMAIL);
         request.setPassword(PASSWORD);
-        request.setUsername("tester");
+        request.setNickname("tester");
         given(userRepository.existsByEmail(EMAIL)).willReturn(false);
         given(bCryptPasswordEncoder.encode(PASSWORD)).willReturn(ENCODED_PASSWORD);
 
@@ -97,7 +102,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("비밀번호가 틀린 경우 예외가 발생한다")
     void login_withWrongPassword_throwsException() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).username("tester").build();
+        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
         LoginRequest request = new LoginRequest();
         request.setEmail(EMAIL);
         request.setPassword("wrongPassword");
@@ -112,7 +117,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("올바른 정보로 로그인 시 액세스/리프레시 토큰을 반환한다")
     void login_withValidCredentials_returnsTokens() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).username("tester").build();
+        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
         ReflectionTestUtils.setField(user, "uuid", USER_UUID);
         LoginRequest request = new LoginRequest();
         request.setEmail(EMAIL);
@@ -145,7 +150,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("저장된 토큰과 일치하지 않는 경우 예외가 발생한다")
     void updateRefreshToken_withMismatchedToken_throwsException() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).username("tester").build();
+        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
         user.updateRefreshToken("stored-token");
         TokenRequest request = new TokenRequest("different-token");
         given(jwtTokenProvider.validateToken("different-token")).willReturn(true);
@@ -160,7 +165,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("유효한 리프레시 토큰으로 새 토큰 쌍을 반환한다")
     void updateRefreshToken_withValidToken_returnsNewTokens() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).username("tester").build();
+        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
         user.updateRefreshToken("refresh-token");
         TokenRequest request = new TokenRequest("refresh-token");
         given(jwtTokenProvider.validateToken("refresh-token")).willReturn(true);
@@ -181,7 +186,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("로그아웃 시 사용자의 리프레시 토큰이 초기화된다")
     void logout_clearsRefreshToken() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).username("tester").build();
+        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
         user.updateRefreshToken("refresh-token");
         given(jwtTokenProvider.getUuid("access-token")).willReturn(USER_UUID);
         given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));

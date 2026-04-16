@@ -3,6 +3,7 @@ package com.aigo.speech.auth.dto;
 import com.aigo.speech.user.entity.Provider;
 import com.aigo.speech.user.entity.Role;
 import com.aigo.speech.user.entity.User;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -107,8 +108,9 @@ class OAuthAttributesTest {
         assertThat(user.getProvider()).isEqualTo(Provider.GOOGLE);
         assertThat(user.getProviderId()).isEqualTo("google-123");
         assertThat(user.getEmail()).isEqualTo("test@gmail.com");
-        assertThat(user.getNickname()).isEqualTo("홍길동");
-        assertThat(user.getProfileImage()).isEqualTo("http://picture.url");
         assertThat(user.getRole()).isEqualTo(Role.USER);
+        // 닉네임/프로필 이미지는 Profile 엔티티로 분리 — OAuthAttributes에서 직접 검증
+        assertThat(oAuthAttributes.getNickname()).isEqualTo("홍길동");
+        assertThat(oAuthAttributes.getProfileImage()).isEqualTo("http://picture.url");
     }
 }

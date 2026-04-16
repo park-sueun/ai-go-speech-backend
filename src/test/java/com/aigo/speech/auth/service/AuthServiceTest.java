@@ -16,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
+import java.util.UUID;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,6 +44,7 @@ class AuthServiceTest {
     private static final String EMAIL = "user@example.com";
     private static final String PASSWORD = "password123";
     private static final String ENCODED_PASSWORD = "encoded_password";
+    private static final UUID USER_UUID = UUID.randomUUID();
 
     // ======================== signup ========================
 
@@ -110,13 +113,14 @@ class AuthServiceTest {
     @DisplayName("올바른 정보로 로그인 시 액세스/리프레시 토큰을 반환한다")
     void login_withValidCredentials_returnsTokens() {
         User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).username("tester").build();
+        ReflectionTestUtils.setField(user, "uuid", USER_UUID);
         LoginRequest request = new LoginRequest();
         request.setEmail(EMAIL);
         request.setPassword(PASSWORD);
         given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches(PASSWORD, ENCODED_PASSWORD)).willReturn(true);
-        given(jwtTokenProvider.createAccessToken(EMAIL)).willReturn("access-token");
-        given(jwtTokenProvider.createRefreshToken(EMAIL)).willReturn("refresh-token");
+        given(jwtTokenProvider.createAccessToken(USER_UUID)).willReturn("access-token");
+        given(jwtTokenProvider.createRefreshToken(USER_UUID)).willReturn("refresh-token");
 
         TokenResponse response = authService.login(request);
 
@@ -145,8 +149,8 @@ class AuthServiceTest {
         user.updateRefreshToken("stored-token");
         TokenRequest request = new TokenRequest("different-token");
         given(jwtTokenProvider.validateToken("different-token")).willReturn(true);
-        given(jwtTokenProvider.getEmail("different-token")).willReturn(EMAIL);
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        given(jwtTokenProvider.getUuid("different-token")).willReturn(USER_UUID);
+        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
 
         assertThatThrownBy(() -> authService.updateRefreshToken(request))
                 .isInstanceOf(RuntimeException.class)
@@ -160,10 +164,10 @@ class AuthServiceTest {
         user.updateRefreshToken("refresh-token");
         TokenRequest request = new TokenRequest("refresh-token");
         given(jwtTokenProvider.validateToken("refresh-token")).willReturn(true);
-        given(jwtTokenProvider.getEmail("refresh-token")).willReturn(EMAIL);
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
-        given(jwtTokenProvider.createAccessToken(EMAIL)).willReturn("new-access-token");
-        given(jwtTokenProvider.createRefreshToken(EMAIL)).willReturn("new-refresh-token");
+        given(jwtTokenProvider.getUuid("refresh-token")).willReturn(USER_UUID);
+        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
+        given(jwtTokenProvider.createAccessToken(USER_UUID)).willReturn("new-access-token");
+        given(jwtTokenProvider.createRefreshToken(USER_UUID)).willReturn("new-refresh-token");
 
         TokenResponse response = authService.updateRefreshToken(request);
 
@@ -179,8 +183,8 @@ class AuthServiceTest {
     void logout_clearsRefreshToken() {
         User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).username("tester").build();
         user.updateRefreshToken("refresh-token");
-        given(jwtTokenProvider.getEmail("access-token")).willReturn(EMAIL);
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        given(jwtTokenProvider.getUuid("access-token")).willReturn(USER_UUID);
+        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
 
         authService.logout("access-token");
 

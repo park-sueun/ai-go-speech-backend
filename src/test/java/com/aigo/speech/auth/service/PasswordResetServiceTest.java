@@ -18,6 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,6 +49,7 @@ class PasswordResetServiceTest {
     private PasswordResetService passwordResetService;
 
     private static final String EMAIL = "user@example.com";
+    private static final UUID USER_UUID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
@@ -128,10 +130,10 @@ class PasswordResetServiceTest {
     @DisplayName("현재 비밀번호가 일치하지 않으면 예외가 발생한다")
     void changePassword_withWrongCurrentPassword_throwsException() {
         User user = User.builder().email(EMAIL).password("enc").username("tester").build();
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches("wrong", "enc")).willReturn(false);
 
-        assertThatThrownBy(() -> passwordResetService.changePassword(EMAIL, "wrong", "newPass", "newPass"))
+        assertThatThrownBy(() -> passwordResetService.changePassword(USER_UUID, "wrong", "newPass", "newPass"))
                 .isInstanceOf(RuntimeException.class);
 
         verify(userRepository, never()).save(any());
@@ -141,10 +143,10 @@ class PasswordResetServiceTest {
     @DisplayName("새 비밀번호와 확인 비밀번호가 다르면 예외가 발생한다")
     void changePassword_withMismatchedNewPasswords_throwsException() {
         User user = User.builder().email(EMAIL).password("enc").username("tester").build();
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches("current", "enc")).willReturn(true);
 
-        assertThatThrownBy(() -> passwordResetService.changePassword(EMAIL, "current", "newPass", "different"))
+        assertThatThrownBy(() -> passwordResetService.changePassword(USER_UUID, "current", "newPass", "different"))
                 .isInstanceOf(RuntimeException.class);
 
         verify(userRepository, never()).save(any());
@@ -154,12 +156,12 @@ class PasswordResetServiceTest {
     @DisplayName("현재 비밀번호가 일치하면 새 비밀번호로 변경된다")
     void changePassword_withCorrectCurrentPassword_updatesPassword() {
         User user = User.builder().email(EMAIL).password("enc").username("tester").build();
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches("current", "enc")).willReturn(true);
         given(bCryptPasswordEncoder.matches("newPass", "enc")).willReturn(false);
         given(bCryptPasswordEncoder.encode("newPass")).willReturn("new_enc");
 
-        passwordResetService.changePassword(EMAIL, "current", "newPass", "newPass");
+        passwordResetService.changePassword(USER_UUID, "current", "newPass", "newPass");
 
         assertThat(user.getPassword()).isEqualTo("new_enc");
         verify(userRepository).save(user);

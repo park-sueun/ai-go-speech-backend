@@ -89,7 +89,7 @@ class CustomOAuth2UserServiceTest {
                 .profileImage("http://picture.url")
                 .role(Role.USER)
                 .build();
-        ReflectionTestUtils.setField(savedUser, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(savedUser, "uuid", UUID.randomUUID());
 
         given(userRepository.findByProviderAndProviderId(Provider.GOOGLE, "google-123"))
                 .willReturn(Optional.empty());
@@ -113,7 +113,7 @@ class CustomOAuth2UserServiceTest {
                 .profileImage("http://old-picture.url")
                 .role(Role.USER)
                 .build();
-        ReflectionTestUtils.setField(existingUser, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(existingUser, "uuid", UUID.randomUUID());
 
         given(userRepository.findByProviderAndProviderId(Provider.GOOGLE, "google-123"))
                 .willReturn(Optional.of(existingUser));
@@ -136,7 +136,7 @@ class CustomOAuth2UserServiceTest {
                 .role(Role.USER)
                 .build();
 
-        ReflectionTestUtils.setField(savedUser, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(savedUser, "uuid", UUID.randomUUID());
         given(userRepository.findByProviderAndProviderId(Provider.GOOGLE, "google-123"))
                 .willReturn(Optional.empty());
         given(userRepository.save(any(User.class))).willReturn(savedUser);

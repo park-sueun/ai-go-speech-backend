@@ -10,6 +10,12 @@ import com.aigo.speech.auth.dto.AuthDto.LoginRequest;
 import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
 import com.aigo.speech.auth.dto.AuthDto.TokenResponse;
 import com.aigo.speech.auth.dto.TokenRequest;
+import com.aigo.speech.auth.exception.DuplicateEmailException;
+import com.aigo.speech.auth.exception.DuplicateNicknameException;
+import com.aigo.speech.auth.exception.InvalidCredentialsException;
+import com.aigo.speech.auth.exception.PasswordMismatchException;
+import com.aigo.speech.auth.exception.InvalidTokenException;
+import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.auth.jwt.JwtTokenProvider;
 import com.aigo.speech.user.entity.Profile;
 import com.aigo.speech.user.entity.Provider;
@@ -32,11 +38,15 @@ public class AuthService {
 	@Transactional
 	public void signup (SignupRequest dto) { // 회원가입
 
+		if (!dto.getPassword().equals(dto.getConfirmPassword())) {
+			throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
+		}
+
 		if (userRepository.existsByEmail(dto.getEmail())) {
-			throw new RuntimeException("이미 존재하는 이메일입니다.");
+			throw new DuplicateEmailException("이미 사용중인 이메일입니다.");
 		}
 		if (profileRepository.existsByNickname(dto.getNickname())) {
-			throw new RuntimeException("이미 사용 중인 닉네임입니다.");
+			throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
 		}
 
 		User user = userRepository.save(User.builder()
@@ -56,10 +66,10 @@ public class AuthService {
 	public TokenResponse login (LoginRequest dto) {
 
 		User user = userRepository.findByEmail(dto.getEmail())
-			.orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
 
 		if (!bCryptPasswordEncoder.matches(dto.getPassword(), user.getPassword())) {
-			throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+			throw new InvalidCredentialsException("비밀번호가 일치하지 않습니다.");
 		}
 
 		String accessToken = jwtTokenProvider.createAccessToken(user.getUuid());
@@ -77,16 +87,16 @@ public class AuthService {
 		String refreshToken = dto.refreshToken();
 
 		if (!jwtTokenProvider.validateToken(refreshToken)) {
-			throw new RuntimeException("리프레시 토큰이 유효하지 않습니다.");
+			throw new InvalidTokenException("리프레시 토큰이 유효하지 않습니다.");
 		}
 
 		UUID uuid = jwtTokenProvider.getUuid(refreshToken);
 
 		User user = userRepository.findByUuid(uuid)
-			.orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
 
 		if (user.getRefreshToken() == null || !user.getRefreshToken().equals(refreshToken)) {
-			throw new RuntimeException("일치하는 토큰 정보가 없습니다. 다시 시도해주세요.");
+			throw new InvalidTokenException("일치하는 토큰 정보가 없습니다. 다시 시도해주세요.");
 		}
 
 		String newAccessToken = jwtTokenProvider.createAccessToken(uuid);
@@ -103,7 +113,7 @@ public class AuthService {
 		UUID uuid = jwtTokenProvider.getUuid(accessToken);
 
 		User user = userRepository.findByUuid(uuid)
-			.orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
 
 		user.updateRefreshToken(null); // 세션 만료
 	}

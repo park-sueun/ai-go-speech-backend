@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import com.aigo.speech.auth.exception.UserNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +63,7 @@ public class PasswordResetService {
 		String email = passwordResetTokenProvider.validateAndGetEmail(token);
 
 		User user = userRepository.findByEmail(email)
-			.orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다."));
+			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
 
 		user.changePassword(bCryptPasswordEncoder.encode(newPassword));
 		userRepository.save(user);
@@ -75,7 +75,7 @@ public class PasswordResetService {
 	public void changePassword (
 		UUID uuid, String currentPassword, String newPassword, String confirmPassword) {
 		User user = userRepository.findByUuid(uuid)
-			.orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다."));
+			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
 
 		// 현재 비밀번호 일치 여부 검증
 		if (!bCryptPasswordEncoder.matches(currentPassword, user.getPassword())) {

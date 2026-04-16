@@ -13,7 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import com.aigo.speech.auth.exception.UserNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -106,7 +106,7 @@ class PasswordResetServiceTest {
         given(userRepository.findByEmail(EMAIL)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> passwordResetService.resetPassword("valid-token", "newPass", "newPass"))
-                .isInstanceOf(UsernameNotFoundException.class)
+                .isInstanceOf(UserNotFoundException.class)
                 .hasMessage("존재하지 않는 사용자입니다.");
     }
 

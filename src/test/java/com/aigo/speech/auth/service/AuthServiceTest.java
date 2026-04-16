@@ -1,5 +1,6 @@
 package com.aigo.speech.auth.service;
 
+import com.aigo.speech.auth.exception.DuplicateEmailException;
 import com.aigo.speech.auth.dto.AuthDto.LoginRequest;
 import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
 import com.aigo.speech.auth.dto.AuthDto.TokenResponse;
@@ -63,8 +64,8 @@ class AuthServiceTest {
         given(userRepository.existsByEmail(EMAIL)).willReturn(true);
 
         assertThatThrownBy(() -> authService.signup(request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("이미 존재하는 이메일입니다.");
+                .isInstanceOf(DuplicateEmailException.class)
+                .hasMessage("이미 사용중인 이메일입니다.");
 
         verify(userRepository, never()).save(any());
     }

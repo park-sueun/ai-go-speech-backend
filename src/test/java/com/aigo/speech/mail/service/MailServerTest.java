@@ -87,7 +87,7 @@ class EmailVerificationServiceTest {
 
         assertThatThrownBy(() -> emailVerificationService.verifyCode(EMAIL, "WRONG1"))
                 .isInstanceOf(MailVerificationException.class)
-                .hasMessage("인증 코드가 일치하지 않습니다.");
+                .hasMessage("인증번호가 일치하지 않습니다.");
 
         verify(redisTemplate, never()).delete(anyString());
     }

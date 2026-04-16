@@ -1,110 +1,92 @@
 package com.aigo.speech.user.entity;
 
+import java.util.UUID;
+
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.aigo.speech.global.entity.BaseTimeEntity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(
-    name = "users",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"})
+	name = "users",
+	uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"})
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 public class User extends BaseTimeEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @Column(unique = true, nullable = false, updatable = false)
-    private UUID uuid;
+	@Column(unique = true, nullable = false, updatable = false)
+	private UUID uuid;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 10)
-    private Provider provider;
+	@Column(unique = true, nullable = false)
+	private String email;
 
-    @Column(name = "provider_id")
-    private String providerId;
+	private String password;
 
-    @Column(unique = true, nullable = false)
-    private String email;
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 10)
+	private Role role;
 
-    private String password;
+	@Enumerated(EnumType.STRING)
+	@Column(length = 10)
+	private Provider provider;
 
-    private String username;   // 로컬 회원가입 시 사용자가 입력한 이름
+	@Column(name = "provider_id")
+	private String providerId;
 
-    private String nickname;   // OAuth 로그인 시 제공자에서 가져온 이름
+	@OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+	private Profile profile;
 
-    @Column(name = "profile_image")
-    private String profileImage;
+	@Column(length = 512)
+	private String refreshToken;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
-    private Role role;
+	@PrePersist
+	protected void prePersist () {
+		if (this.uuid == null) {
+			this.uuid = UUID.randomUUID();
+		}
+	}
 
-    @Column(length = 512)
-    private String refreshToken;
+	@Builder
+	public User (
+		Provider provider, String providerId, String email, String password, Role role
+	) {
+		this.provider = provider;
+		this.providerId = providerId;
+		this.email = email;
+		this.password = password;
+		this.role = role;
+	}
 
-    @CreatedDate
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+	public void updateRefreshToken (String refreshToken) {
+		this.refreshToken = refreshToken;
+	}
 
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+	public void changePassword (String encodedPassword) {
+		this.password = encodedPassword;
+	}
 
-    @PrePersist
-    protected void prePersist () {
-        if (this.uuid == null) {
-            this.uuid = UUID.randomUUID();
-        }
-    }
-
-    @Builder
-    public User (
-        Provider provider, String providerId, String email, String password,
-        String username, String nickname, String profileImage, Role role
-    ) {
-        this.provider = provider;
-        this.providerId = providerId;
-        this.email = email;
-        this.password = password;
-        this.username = username;
-        this.nickname = nickname;
-        this.profileImage = profileImage;
-        this.role = role;
-    }
-
-    public void update (String nickname, String profileImage) {
-        this.nickname = nickname;
-        this.profileImage = profileImage;
-    }
-
-    public void updateRefreshToken (String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
-
-    public void changePassword (String encodedPassword) {
-        this.password = encodedPassword;
-    }
 }

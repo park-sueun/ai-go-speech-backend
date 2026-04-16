@@ -1,89 +1,111 @@
 package com.aigo.speech.auth.service;
 
+import java.util.UUID;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.aigo.speech.auth.dto.AuthDto.LoginRequest;
 import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
 import com.aigo.speech.auth.dto.AuthDto.TokenResponse;
 import com.aigo.speech.auth.dto.TokenRequest;
 import com.aigo.speech.auth.jwt.JwtTokenProvider;
+import com.aigo.speech.user.entity.Profile;
 import com.aigo.speech.user.entity.Provider;
 import com.aigo.speech.user.entity.Role;
 import com.aigo.speech.user.entity.User;
+import com.aigo.speech.user.repository.ProfileRepository;
 import com.aigo.speech.user.repository.UserRepository;
-import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+	private final UserRepository userRepository;
+	private final ProfileRepository profileRepository;
+	private final JwtTokenProvider jwtTokenProvider;
+	private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
-    @Transactional
-    public void signup (SignupRequest dto) { // 회원가입
-        if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new RuntimeException("이미 존재하는 이메일입니다.");
-        }
-        userRepository.save(User.builder()
-            .email(dto.getEmail())
-            .password(bCryptPasswordEncoder.encode(dto.getPassword()))
-            .username(dto.getUsername())
-            .provider(Provider.LOCAL)
-            .role(Role.USER)
-            .build());
-    }
+	@Transactional
+	public void signup (SignupRequest dto) { // 회원가입
 
-    @Transactional
-    public TokenResponse login (LoginRequest dto) {
-        User user = userRepository.findByEmail(dto.getEmail())
-            .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
-        if (!bCryptPasswordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
-        }
+		if (userRepository.existsByEmail(dto.getEmail())) {
+			throw new RuntimeException("이미 존재하는 이메일입니다.");
+		}
+		if (profileRepository.existsByNickname(dto.getNickname())) {
+			throw new RuntimeException("이미 사용 중인 닉네임입니다.");
+		}
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getUuid());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUuid());
+		User user = userRepository.save(User.builder()
+			.email(dto.getEmail())
+			.password(bCryptPasswordEncoder.encode(dto.getPassword()))
+			.provider(Provider.LOCAL)
+			.role(Role.USER)
+			.build());
 
-        user.updateRefreshToken(refreshToken); // DB에 refreshToken 저장
+		profileRepository.save(Profile.builder()
+			.user(user)
+			.nickname(dto.getNickname())
+			.build());
+	}
 
-        return new TokenResponse(accessToken, refreshToken);
-    }
+	@Transactional
+	public TokenResponse login (LoginRequest dto) {
 
-    // 토큰 갱신
-    @Transactional
-    public TokenResponse updateRefreshToken (TokenRequest dto) {
-        String refreshToken = dto.refreshToken();
-        if (!jwtTokenProvider.validateToken(refreshToken)) {
-            throw new RuntimeException("리프레시 토큰이 유효하지 않습니다.");
-        }
+		User user = userRepository.findByEmail(dto.getEmail())
+			.orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
-        UUID uuid = jwtTokenProvider.getUuid(refreshToken);
+		if (!bCryptPasswordEncoder.matches(dto.getPassword(), user.getPassword())) {
+			throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+		}
 
-        User user = userRepository.findByUuid(uuid)
-            .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+		String accessToken = jwtTokenProvider.createAccessToken(user.getUuid());
+		String refreshToken = jwtTokenProvider.createRefreshToken(user.getUuid());
 
-        if (user.getRefreshToken() == null || !user.getRefreshToken().equals(refreshToken)) {
-            throw new RuntimeException("일치하는 토큰 정보가 없습니다. 다시 시도해주세요.");
-        }
+		user.updateRefreshToken(refreshToken); // DB에 refreshToken 저장
 
-        String newAccessToken = jwtTokenProvider.createAccessToken(uuid);
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(uuid);
+		return new TokenResponse(accessToken, refreshToken);
+	}
 
-        user.updateRefreshToken(newRefreshToken);
+	// 토큰 갱신
+	@Transactional
+	public TokenResponse updateRefreshToken (TokenRequest dto) {
 
-        return new TokenResponse(newAccessToken, newRefreshToken);
-    }
+		String refreshToken = dto.refreshToken();
 
-    @Transactional
-    public void logout (String accessToken) {
-        UUID uuid = jwtTokenProvider.getUuid(accessToken);
-        User user = userRepository.findByUuid(uuid)
-            .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
-        user.updateRefreshToken(null); // 세션 만료
-    }
+		if (!jwtTokenProvider.validateToken(refreshToken)) {
+			throw new RuntimeException("리프레시 토큰이 유효하지 않습니다.");
+		}
+
+		UUID uuid = jwtTokenProvider.getUuid(refreshToken);
+
+		User user = userRepository.findByUuid(uuid)
+			.orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+
+		if (user.getRefreshToken() == null || !user.getRefreshToken().equals(refreshToken)) {
+			throw new RuntimeException("일치하는 토큰 정보가 없습니다. 다시 시도해주세요.");
+		}
+
+		String newAccessToken = jwtTokenProvider.createAccessToken(uuid);
+		String newRefreshToken = jwtTokenProvider.createRefreshToken(uuid);
+
+		user.updateRefreshToken(newRefreshToken);
+
+		return new TokenResponse(newAccessToken, newRefreshToken);
+	}
+
+	@Transactional
+	public void logout (String accessToken) {
+
+		UUID uuid = jwtTokenProvider.getUuid(accessToken);
+
+		User user = userRepository.findByUuid(uuid)
+			.orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+
+		user.updateRefreshToken(null); // 세션 만료
+	}
+	
 }

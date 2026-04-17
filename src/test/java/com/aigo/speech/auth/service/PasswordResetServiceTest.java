@@ -13,11 +13,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import com.aigo.speech.auth.exception.UserNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,6 +49,7 @@ class PasswordResetServiceTest {
     private PasswordResetService passwordResetService;
 
     private static final String EMAIL = "user@example.com";
+    private static final UUID USER_UUID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
@@ -70,7 +72,7 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("존재하는 이메일로 요청 시 재설정 메일이 발송된다")
     void sendPasswordResetEmail_whenUserExists_sendsResetEmail() {
-        User user = User.builder().email(EMAIL).password("encoded").username("tester").build();
+        User user = User.builder().email(EMAIL).password("encoded").build();
         given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
         given(passwordResetTokenProvider.generateToken(EMAIL)).willReturn("reset-token");
         given(mailTemplateService.renderPasswordReset(anyString(), eq(30))).willReturn("<html/>");
@@ -91,7 +93,7 @@ class PasswordResetServiceTest {
         given(passwordResetTokenProvider.validateAndGetEmail("bad-token"))
                 .willThrow(new InvalidTokenException("유효하지 않은 토큰입니다."));
 
-        assertThatThrownBy(() -> passwordResetService.resetPassword("bad-token", "newPass"))
+        assertThatThrownBy(() -> passwordResetService.resetPassword("bad-token", "newPass", "newPass"))
                 .isInstanceOf(InvalidTokenException.class);
 
         verify(userRepository, never()).save(any());
@@ -103,20 +105,20 @@ class PasswordResetServiceTest {
         given(passwordResetTokenProvider.validateAndGetEmail("valid-token")).willReturn(EMAIL);
         given(userRepository.findByEmail(EMAIL)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> passwordResetService.resetPassword("valid-token", "newPass"))
-                .isInstanceOf(UsernameNotFoundException.class)
+        assertThatThrownBy(() -> passwordResetService.resetPassword("valid-token", "newPass", "newPass"))
+                .isInstanceOf(UserNotFoundException.class)
                 .hasMessage("존재하지 않는 사용자입니다.");
     }
 
     @Test
     @DisplayName("유효한 토큰으로 비밀번호 재설정 시 새 비밀번호로 변경된다")
     void resetPassword_withValidToken_updatesPassword() {
-        User user = User.builder().email(EMAIL).password("old_enc").username("tester").build();
+        User user = User.builder().email(EMAIL).password("old_enc").build();
         given(passwordResetTokenProvider.validateAndGetEmail("valid-token")).willReturn(EMAIL);
         given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.encode("newPass")).willReturn("new_enc");
 
-        passwordResetService.resetPassword("valid-token", "newPass");
+        passwordResetService.resetPassword("valid-token", "newPass", "newPass");
 
         assertThat(user.getPassword()).isEqualTo("new_enc");
         verify(userRepository).save(user);
@@ -127,11 +129,11 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("현재 비밀번호가 일치하지 않으면 예외가 발생한다")
     void changePassword_withWrongCurrentPassword_throwsException() {
-        User user = User.builder().email(EMAIL).password("enc").username("tester").build();
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        User user = User.builder().email(EMAIL).password("enc").build();
+        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches("wrong", "enc")).willReturn(false);
 
-        assertThatThrownBy(() -> passwordResetService.changePassword(EMAIL, "wrong", "newPass", "newPass"))
+        assertThatThrownBy(() -> passwordResetService.changePassword(USER_UUID, "wrong", "newPass", "newPass"))
                 .isInstanceOf(RuntimeException.class);
 
         verify(userRepository, never()).save(any());
@@ -140,11 +142,11 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("새 비밀번호와 확인 비밀번호가 다르면 예외가 발생한다")
     void changePassword_withMismatchedNewPasswords_throwsException() {
-        User user = User.builder().email(EMAIL).password("enc").username("tester").build();
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        User user = User.builder().email(EMAIL).password("enc").build();
+        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches("current", "enc")).willReturn(true);
 
-        assertThatThrownBy(() -> passwordResetService.changePassword(EMAIL, "current", "newPass", "different"))
+        assertThatThrownBy(() -> passwordResetService.changePassword(USER_UUID, "current", "newPass", "different"))
                 .isInstanceOf(RuntimeException.class);
 
         verify(userRepository, never()).save(any());
@@ -153,13 +155,13 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("현재 비밀번호가 일치하면 새 비밀번호로 변경된다")
     void changePassword_withCorrectCurrentPassword_updatesPassword() {
-        User user = User.builder().email(EMAIL).password("enc").username("tester").build();
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        User user = User.builder().email(EMAIL).password("enc").build();
+        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
         given(bCryptPasswordEncoder.matches("current", "enc")).willReturn(true);
         given(bCryptPasswordEncoder.matches("newPass", "enc")).willReturn(false);
         given(bCryptPasswordEncoder.encode("newPass")).willReturn("new_enc");
 
-        passwordResetService.changePassword(EMAIL, "current", "newPass", "newPass");
+        passwordResetService.changePassword(USER_UUID, "current", "newPass", "newPass");
 
         assertThat(user.getPassword()).isEqualTo("new_enc");
         verify(userRepository).save(user);

@@ -1,7 +1,14 @@
 package com.aigo.speech.global.exception;
 
+import com.aigo.speech.auth.exception.DuplicateEmailException;
+import com.aigo.speech.auth.exception.DuplicateNicknameException;
+import com.aigo.speech.auth.exception.InvalidCredentialsException;
+import com.aigo.speech.auth.exception.InvalidPasswordException;
 import com.aigo.speech.auth.exception.InvalidTokenException;
+import com.aigo.speech.auth.exception.PasswordMismatchException;
+import com.aigo.speech.auth.exception.SamePasswordException;
 import com.aigo.speech.auth.exception.TokenExpiredException;
+import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.global.dto.ApiResponse;
 import com.aigo.speech.mail.exception.MailSendException;
 import com.aigo.speech.mail.exception.MailVerificationException;
@@ -41,5 +48,40 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MailSendException.class)
     public ResponseEntity<ApiResponse<?>> handleMailSendException(MailSendException e) {
         return ResponseEntity.internalServerError().body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ApiResponse<?>> handleDuplicateEmail(DuplicateEmailException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateNicknameException.class)
+    public ResponseEntity<ApiResponse<?>> handleDuplicateNickname(DuplicateNicknameException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleUserNotFound(UserNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiResponse<?>> handleInvalidCredentials(InvalidCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(PasswordMismatchException.class)
+    public ResponseEntity<ApiResponse<?>> handlePasswordMismatch(PasswordMismatchException e) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<ApiResponse<?>> handleInvalidPassword(InvalidPasswordException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(SamePasswordException.class)
+    public ResponseEntity<ApiResponse<?>> handleSamePassword(SamePasswordException e) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
     }
 }

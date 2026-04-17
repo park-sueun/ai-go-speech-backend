@@ -61,7 +61,7 @@ public class EmailVerificationService {
             throw new MailVerificationException("인증 코드가 만료되었습니다.");
         }
         if (!storedCode.equals(code)) {
-            throw new MailVerificationException("인증 코드가 일치하지 않습니다.");
+            throw new MailVerificationException("인증번호가 일치하지 않습니다.");
         }
 
         redisTemplate.delete(key);

@@ -1,5 +1,6 @@
 package com.aigo.speech.auth.controller;
 
+import com.aigo.speech.auth.exception.InvalidTokenException;
 import java.util.UUID;
 
 import org.springframework.http.ResponseCookie;
@@ -40,29 +41,30 @@ public class AuthController {
 	private final PasswordResetService passwordResetService;
 
 	@PostMapping("/signup")
-	public ResponseEntity<String> signup (@RequestBody @Valid SignupRequest request) {
+	public ResponseEntity<ApiResponse<String>> signup (@RequestBody @Valid SignupRequest request) {
 		authService.signup(request);
-		return ResponseEntity.ok("회원가입 성공");
+		return ResponseEntity.ok(ApiResponse.success("회원가입 성공"));
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<TokenResponse> login (@RequestBody LoginRequest request) {
-		return ResponseEntity.ok(authService.login(request));
+	public ResponseEntity<ApiResponse<TokenResponse>> login (@RequestBody LoginRequest request) {
+		TokenResponse response = authService.login(request);
+		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
 	@PostMapping("/refresh")
-	public ResponseEntity<TokenResponse> refresh (@RequestBody TokenRequest dto) {
+	public ResponseEntity<ApiResponse<TokenResponse>> refresh (@RequestBody TokenRequest dto) {
 		TokenResponse response = authService.updateRefreshToken(dto);
-		return ResponseEntity.ok(response);
+		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
 	@PostMapping("/logout")
-	public ResponseEntity<String> logout (
+	public ResponseEntity<ApiResponse<String>> logout (
 		@RequestHeader(value = "Authorization") String bearerToken,
 		HttpServletResponse httpResponse
 	) {
 		if (!bearerToken.startsWith("Bearer ")) {
-			return ResponseEntity.badRequest().body("유효하지 않은 인증 헤더입니다.");
+			throw new InvalidTokenException("유효하지 않은 인증 헤더입니다.");
 		}
 
 		String accessToken = bearerToken.substring(7);
@@ -76,7 +78,7 @@ public class AuthController {
 		httpResponse.addHeader("Set-Cookie", clearAccess.toString());
 		httpResponse.addHeader("Set-Cookie", clearRefresh.toString());
 
-		return ResponseEntity.ok("로그아웃 성공");
+		return ResponseEntity.ok(ApiResponse.success("로그아웃 성공"));
 	}
 
 	// 인증 코드 발송

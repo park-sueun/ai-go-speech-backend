@@ -15,11 +15,11 @@ public class AppStartupLogger implements ApplicationRunner {
     private final Environment environment;
 
     @Override
-    public void run(ApplicationArguments args) {
+    public void run (ApplicationArguments args) {
         String[] activeProfiles = environment.getActiveProfiles();
         String profiles = activeProfiles.length > 0
-                ? String.join(", ", activeProfiles)
-                : "default";
+            ? String.join(", ", activeProfiles)
+            : "default";
 
         log.info("------------------------------------------");
         log.info("  >>> Active Profile : {}  <<<", profiles);

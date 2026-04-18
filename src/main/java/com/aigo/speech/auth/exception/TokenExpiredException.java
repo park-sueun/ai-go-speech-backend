@@ -2,7 +2,7 @@ package com.aigo.speech.auth.exception;
 
 public class TokenExpiredException extends RuntimeException {
 
-    public TokenExpiredException(String message) {
+    public TokenExpiredException (String message) {
         super(message);
     }
 }

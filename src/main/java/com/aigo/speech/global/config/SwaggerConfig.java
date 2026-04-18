@@ -9,18 +9,19 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig { // swagger 토큰 설정
-  @Bean
-  public OpenAPI openAPI() {
-    String jwt = "JWT";
-    SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwt);
-    Components components = new Components().addSecuritySchemes(jwt, new SecurityScheme()
-        .name(jwt)
-        .type(SecurityScheme.Type.HTTP)
-        .scheme("bearer")
-        .bearerFormat("JWT"));
-    return new OpenAPI()
-        .addSecurityItem(securityRequirement)
-        .components(components);
-  }
+
+    @Bean
+    public OpenAPI openAPI () {
+        String jwt = "JWT";
+        SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwt);
+        Components components = new Components().addSecuritySchemes(jwt, new SecurityScheme()
+            .name(jwt)
+            .type(SecurityScheme.Type.HTTP)
+            .scheme("bearer")
+            .bearerFormat("JWT"));
+        return new OpenAPI()
+            .addSecurityItem(securityRequirement)
+            .components(components);
+    }
 
 }

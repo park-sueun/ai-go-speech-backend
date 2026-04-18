@@ -6,6 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.security.Key;
 import java.util.Date;
+import java.util.UUID;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -28,18 +29,18 @@ public class JwtTokenProvider {
         this.refreshTokenExpiration = refreshTokenDays * 24 * 60 * 60 * 1000L;
     }
 
-    public String createAccessToken (String email) { // access token 생성
-        return createToken(email, accessTokenExpiration);
+    public String createAccessToken (UUID uuid) {
+        return createToken(uuid.toString(), accessTokenExpiration);
     }
 
-    public String createRefreshToken (String email) { // refresh token 생성
-        return createToken(email, refreshTokenExpiration);
+    public String createRefreshToken (UUID uuid) {
+        return createToken(uuid.toString(), refreshTokenExpiration);
     }
 
-    public String createToken (String email, long expire) {
+    public String createToken (String subject, long expire) {
         Date now = new Date();
         return Jwts.builder()
-            .setSubject(email)
+            .setSubject(subject)
             .setIssuedAt(now)
             .setExpiration(new Date(now.getTime() + expire))
             .signWith(key, SignatureAlgorithm.HS256)
@@ -55,9 +56,10 @@ public class JwtTokenProvider {
         }
     }
 
-    public String getEmail (String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody()
-            .getSubject();
+    public UUID getUuid (String token) {
+        String subject = Jwts.parserBuilder().setSigningKey(key).build()
+            .parseClaimsJws(token).getBody().getSubject();
+        return UUID.fromString(subject);
     }
 
     public boolean isTokenExpired (String token) {
@@ -65,7 +67,7 @@ public class JwtTokenProvider {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return false;
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            return true; // 토큰 만료
+            return true;
         } catch (Exception e) {
             return false;
         }

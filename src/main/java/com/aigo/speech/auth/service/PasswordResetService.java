@@ -1,6 +1,5 @@
 package com.aigo.speech.auth.service;
 
-import com.aigo.speech.auth.dto.ChangePasswordRequest;
 import com.aigo.speech.auth.exception.InvalidPasswordException;
 import com.aigo.speech.auth.exception.PasswordMismatchException;
 import com.aigo.speech.auth.exception.SamePasswordException;
@@ -36,14 +35,14 @@ public class PasswordResetService {
     private String BASE_URL;
 
     @Async("mailExecutor")
-    public void sendPasswordResetEmail(String email) {
-        userRepository.findByEmail(email).ifPresent(user ->{
+    public void sendPasswordResetEmail (String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
             String token = passwordResetTokenProvider.generateToken(email);
             String resetUrl = BASE_URL + "/reset-password?token=" + token;
 
             // 템플릿 렌더링
             String html = mailTemplateService.renderPasswordReset(
-                    resetUrl, RESET_EXPIRY_MINUTES
+                resetUrl, RESET_EXPIRY_MINUTES
             );
 
             // HTML 메일 발송
@@ -52,12 +51,12 @@ public class PasswordResetService {
     }
 
     @Transactional
-    public void resetPassword(String token, String newPassword) {
+    public void resetPassword (String token, String newPassword) {
         // 1. 토큰에 담긴 이메일 정보 확인
         String email = passwordResetTokenProvider.validateAndGetEmail(token);
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다."));
+            .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다."));
 
         // 2. 새 비밀번호 암호화 후 변경
         user.changePassword(bCryptPasswordEncoder.encode(newPassword));
@@ -68,15 +67,17 @@ public class PasswordResetService {
 
     /**
      * 로그인 유저 비밀번호 변경
+     *
      * @param user
      * @param currentPassword
      * @param newPassword
      * @param confirmPassword
      */
     @Transactional
-    public void changePassword(String email, String currentPassword, String newPassword, String confirmPassword) {
+    public void changePassword (
+        String email, String currentPassword, String newPassword, String confirmPassword) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다."));
+            .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다."));
 
         // 현재 비밀번호 일치 여부 검증
         if (!bCryptPasswordEncoder.matches(currentPassword, user.getPassword())) {

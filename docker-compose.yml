@@ -1,18 +1,30 @@
 services:
-  app:
-    image: myapp:latest
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
     networks:
       - app-network
     depends_on:
-      db:
-        condition: service_healthy
+      - app-blue
+      - app-green
+
+  app-blue:
+    image: myapp:latest
+    networks:
+      - app-network
+
+  app-green:
+    image: myapp:latest
+    networks:
+      - app-network
 
   db:
     image: mysql:8.4
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s
       timeout: 5s
       retries: 5

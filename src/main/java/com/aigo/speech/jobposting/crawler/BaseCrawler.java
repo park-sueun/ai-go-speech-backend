@@ -12,6 +12,8 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.aigo.speech.jobposting.exception.JobPostingCrawlException;
+
 import io.github.bonigarcia.wdm.WebDriverManager;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,16 +35,18 @@ public abstract class BaseCrawler implements JobPostingCrawler {
 				"Chrome/120.0.0.0 Safari/537.36"
 		);
 
-		if (!seleniumRemoteUrl.isBlank()) {
-			try {
+		try {
+			if (!seleniumRemoteUrl.isBlank()) {
 				return new RemoteWebDriver(new URL(seleniumRemoteUrl), options);
-			} catch (Exception e) {
-				throw new RuntimeException("Selenium 원격 서버 연결 실패: " + seleniumRemoteUrl, e);
 			}
+			WebDriverManager.chromedriver().setup();
+			return new ChromeDriver(options);
+		} catch (JobPostingCrawlException e) {
+			throw e;
+		} catch (Exception e) {
+			log.error("[BaseCrawler] WebDriver 생성 실패. remoteUrl={}", seleniumRemoteUrl, e);
+			throw new JobPostingCrawlException("크롬 드라이버 초기화 실패");
 		}
-
-		WebDriverManager.chromedriver().setup();
-		return new ChromeDriver(options);
 	}
 
 	protected String getBodyText (WebDriver driver) {

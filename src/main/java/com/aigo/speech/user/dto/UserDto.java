@@ -1,0 +1,43 @@
+package com.aigo.speech.user.dto;
+
+import com.aigo.speech.user.entity.Provider;
+import com.aigo.speech.user.entity.User;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.*;
+
+
+public class UserDto {
+
+  @Getter
+  @Builder
+  public static class UserInfoResponse{
+    private String email;
+    private String nickname;
+    private Provider provider;
+    private String profileImageUrl;
+
+    public static UserInfoResponse from(User user) {
+      return UserInfoResponse.builder()
+          .email(user.getEmail())
+          .nickname(user.getProfile().getNickname())
+          .provider(user.getProvider())
+          .profileImageUrl(user.getProfile().getProfileImageUrl())
+          .build();
+    }
+  }
+
+  @Getter
+  public static class UpdateProfileRequest {
+
+    @NotBlank(message = "이메일은 필수 입력값입니다.")
+    @Email(message = "이메일 형식이 올바르지 않습니다.")
+    private String email;
+
+    @NotBlank(message = "닉네임은 필수 입력값입니다.")
+    @Size(min = 2, max = 10, message = "2자 이상 10자 이하로 작성해주세요.(특수문자 입력 불가)")
+    private String nickname;
+    private String profileImageUrl;
+  }
+}

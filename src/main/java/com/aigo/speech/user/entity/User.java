@@ -89,4 +89,5 @@ public class User extends BaseTimeEntity {
 		this.password = encodedPassword;
 	}
 
+	public void changeEmail(String email) { this.email = email;	}
 }

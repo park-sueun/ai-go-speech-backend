@@ -84,4 +84,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleSamePassword(SamePasswordException e) {
         return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
     }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<?>> handleIllegalStateException(IllegalStateException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
+    }
 }

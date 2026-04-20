@@ -53,14 +53,57 @@ jobs:
           username: ${{ secrets.DEV_EC2_USERNAME }}
           key: ${{ secrets.DEV_EC2_SSH_KEY }}
           script: |
+            cd ~/deploy
+            
             # ECR 로그인
             aws ecr get-login-password --region ${{ vars.DEV_AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
             
-            .env.dev 파일 생성
+            # .env.dev 파일 생성
             echo "${{ secrets.DEV_ENV_FILE }}" > .env.dev
             
-            docker compose pull
-            docker compose up -d
+            # 현재 구동 중인 컨테이너 확인
+            IS_BLUE=$(docker ps | grep app-blue)
             
-            # 사용하지 않는 오래된 이미지 삭제
+            if [ -z "IS_BLUE" ]; then
+              # 블루가 없으면 블루를 띄운다
+              TARGET_COLOR="blue"
+              BEFORE_COLOR="green"
+              TARGET_PORT=8081
+            else
+              # 블루가 있으면 그린을 띄운다
+              TARGET_COLOR="green"
+              BEFORE_COLOR="blue"
+              TARGET_PORT=8082
+            fi
+            
+            echo "$TARGET_COLOR 배포를 시작합니다. (Port: $TARGET_PORT)"
+            
+            # 새로운 이미지 pull 및 타겟 컨테이너 실행
+            docker compose -f docker-compose.dev.yml pull app-$TARGET_COLOR
+            docker compose -f docker-compose.dev.yml up -d app-$TARGET_COLOR
+            
+            # 새로운 컨테이너 헬스 체크
+            for i in {1..10}; do
+              echo "Health check 진행중... ($i/10)"
+            
+              if curl -s http://localhost:$TARGET_PORT/health | grep -q "UP"; then
+                echo "$TARGET_COLOR 가 성공적으로 실행되었습니다!"
+                break
+              fi
+              if [ $i -eq 10 ]; then
+                echo "배포 실패: 헬스 체크 타임아웃"
+                exit 1
+              fi
+              sleep 10
+            done
+            
+            # Nginx 트래픽 전환
+            sudo sed -i "s/8081/TEMP_PORT/g; s/8082/8081/g; s/TEMP_PORT/8082/g" ./nginx/conf.d/default.conf
+            sudo docker exec nginx-dev nginx -s reload
+            
+            # 이전 컨테이너 중지
+            echo "이전 버전($BEFORE_COLOR) 컨테이너를 중지합니다."
+            docker stop app-$BEFORE_COLOR || true
+            
+            # 사용하지 않는 이미지 정리
             docker image prune -f

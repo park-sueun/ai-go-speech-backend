@@ -41,6 +41,7 @@ public class UserService {
       if(user.getProvider() != Provider.LOCAL){
         throw new IllegalStateException("소셜 로그인 계정은 이메일 변경이 불가능합니다.");
       }
+
       if(userRepository.existsByEmail(newEmail)) {
         throw new DuplicateEmailException("이미 사용 중인 이메일입니다.");
       }
@@ -54,5 +55,13 @@ public class UserService {
       }
       user.getProfile().update(newNickname, request.getProfileImageUrl());
     }
+  }
+
+  @Transactional
+  public void withdraw(UUID uuid) { // 회원 탈퇴
+    User user = userRepository.findByUuid(uuid)
+        .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+
+    userRepository.delete(user);
   }
 }

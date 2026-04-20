@@ -18,7 +18,7 @@ public class UserDto {
     private Provider provider;
     private String profileImageUrl;
 
-    public static UserInfoResponse from(User user) {
+    public static UserInfoResponse from(User user) { // 사용자 정보 조회
       return UserInfoResponse.builder()
           .email(user.getEmail())
           .nickname(user.getProfile().getNickname())
@@ -29,7 +29,7 @@ public class UserDto {
   }
 
   @Getter
-  public static class UpdateProfileRequest {
+  public static class UpdateProfileRequest { // 사용자 정보 수정
 
     @NotBlank(message = "이메일은 필수 입력값입니다.")
     @Email(message = "이메일 형식이 올바르지 않습니다.")
@@ -39,5 +39,10 @@ public class UserDto {
     @Size(min = 2, max = 10, message = "2자 이상 10자 이하로 작성해주세요.(특수문자 입력 불가)")
     private String nickname;
     private String profileImageUrl;
+  }
+
+  @Getter
+  public static class WithdrawRequest { // 회원 탈퇴
+    private String password;
   }
 }

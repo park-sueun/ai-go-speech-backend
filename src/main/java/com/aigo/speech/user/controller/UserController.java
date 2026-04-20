@@ -12,6 +12,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,6 +41,14 @@ public class UserController {
       @RequestBody @Valid UpdateProfileRequest request
   ) {
     userService.updateProfile(UUID.fromString(uuid), request);
+    return ResponseEntity.ok(ApiResponse.success(null));
+  }
+
+  @DeleteMapping("/delete")
+  public ResponseEntity<ApiResponse<Void>> delete(
+      @Parameter(hidden = true) @AuthenticationPrincipal String uuid
+  ) {
+    userService.withdraw(UUID.fromString(uuid));
     return ResponseEntity.ok(ApiResponse.success(null));
   }
 }

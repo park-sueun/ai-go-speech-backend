@@ -26,8 +26,6 @@ services:
     volumes:
       - ./logs/blue:/app/logs
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_started
       selenium:
@@ -50,31 +48,10 @@ services:
     volumes:
       - ./logs/green:/app/logs
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_started
       selenium:
         condition: service_started
-
-  #  db:
-  #    ports:
-  #      - "${DB_PORT}:3306"
-  #    image: mysql:8.4
-  #    environment:
-  #      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-  #      MYSQL_DATABASE: ${DB_NAME}
-  #    env_file:
-  #      - .env.dev
-  #    volumes:
-  #      - dev_db_data:/var/lib/mysql
-  #    networks:
-  #      - app-network
-  #    healthcheck:
-  #      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}" ]
-  #      interval: 10s
-  #      timeout: 5s
-  #      retries: 5
 
   redis:
     image: redis

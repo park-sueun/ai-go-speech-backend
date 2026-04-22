@@ -64,7 +64,7 @@ jobs:
             # 현재 구동 중인 컨테이너 확인
             IS_BLUE=$(docker ps | grep app-blue)
             
-            if [ -z "IS_BLUE" ]; then
+            if [ -z "$IS_BLUE" ]; then
               # 블루가 없으면 블루를 띄운다
               TARGET_COLOR="blue"
               BEFORE_COLOR="green"

@@ -4,15 +4,14 @@ import com.aigo.speech.mail.exception.MailVerificationException;
 import com.aigo.speech.mail.server.MailServer;
 import com.aigo.speech.mail.service.MailTemplateService;
 import com.aigo.speech.user.repository.UserRepository;
+import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -38,7 +37,7 @@ public class EmailVerificationService {
 
     // 이메일 인증 - 코드 방식
     @Async
-    public void sendVerificationCode(String email) {
+    public void sendVerificationCode (String email) {
         String key = PREFIX + email;
         String code = generateCode();
         log.info(String.valueOf(VERIFY_EXPIRY_MINUTES));
@@ -48,13 +47,13 @@ public class EmailVerificationService {
 
         String subject = "[음어그] 이메일 인증 안내";
         String context = mailTemplateService.renderEmailVerificationCode(
-                code, VERIFY_EXPIRY_MINUTES
+            code, VERIFY_EXPIRY_MINUTES
         );
 
         mailServer.sendHtml(email, subject, context);
     }
 
-    public void verifyCode(String email, String code) {
+    public void verifyCode (String email, String code) {
         String key = PREFIX + email;
         String storedCode = redisTemplate.opsForValue().get(key);
 
@@ -78,7 +77,8 @@ public class EmailVerificationService {
         redisTemplate.delete(VERIFIED_PREFIX + email);
     }
 
-    private String generateCode() {
+    private String generateCode () {
+    
         StringBuilder sb = new StringBuilder(AUTH_CODE_LENGTH);
         for (int i = 0; i < AUTH_CODE_LENGTH; i++) {
             sb.append(CHAR_POOL[random.nextInt(CHAR_POOL.length)]);

@@ -1,5 +1,11 @@
 package com.aigo.speech.global.exception;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 import com.aigo.speech.auth.exception.DuplicateEmailException;
 import com.aigo.speech.auth.exception.DuplicateNicknameException;
 import com.aigo.speech.auth.exception.InvalidCredentialsException;
@@ -10,13 +16,12 @@ import com.aigo.speech.auth.exception.SamePasswordException;
 import com.aigo.speech.auth.exception.TokenExpiredException;
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.global.dto.ApiResponse;
+import com.aigo.speech.jobposting.exception.InvalidUrlException;
+import com.aigo.speech.jobposting.exception.JobPostingCrawlException;
+import com.aigo.speech.jobposting.exception.JobPostingParseException;
+import com.aigo.speech.jobposting.exception.UnsupportedSiteException;
 import com.aigo.speech.mail.exception.MailSendException;
 import com.aigo.speech.mail.exception.MailVerificationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -88,5 +93,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<?>> handleIllegalStateException(IllegalStateException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(JobPostingCrawlException.class)
+    public ResponseEntity<ApiResponse<?>> handleJobPostingCrawl (JobPostingCrawlException e) {
+      return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+        .body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(UnsupportedSiteException.class)
+    public ResponseEntity<ApiResponse<?>> handleUnsupportedSite (UnsupportedSiteException e) {
+      return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidUrlException.class)
+    public ResponseEntity<ApiResponse<?>> handleInvalidUrl (InvalidUrlException e) {
+      return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+    }
+
+    @ExceptionHandler(JobPostingParseException.class)
+    public ResponseEntity<ApiResponse<?>> handleJobPostingParse (JobPostingParseException e) {
+      return ResponseEntity.internalServerError().body(ApiResponse.fail(e.getMessage()));
     }
 }

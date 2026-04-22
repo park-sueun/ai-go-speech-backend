@@ -110,8 +110,11 @@ jobs:
             done
             
             # Nginx 트래픽 전환
-            sudo sed -i "s/8081/TEMP_PORT/g; s/8082/8081/g; s/TEMP_PORT/8082/g" ./nginx/conf.d/default.conf
-            sudo docker exec nginx-dev nginx -s reload
+            echo "set \$service_url http://app-$TARGET_COLOR:8080;" | sudo tee ./nginx/conf.d/service-url.inc
+            
+            # Nginx가 항상 떠있도록 보장한 뒤 reload
+            docker compose -f docker-compose.dev.yml up -d nginx
+            docker exec nginx-dev nginx -s reload
             
             # 이전 컨테이너 중지
             echo "이전 버전($BEFORE_COLOR) 컨테이너를 중지합니다."

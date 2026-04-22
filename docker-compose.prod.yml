@@ -58,7 +58,7 @@ services:
         condition: service_started
     networks:
       - app-network
-    logging: *app-logging # 위 로깅 설정 재사용
+    logging: *app-logging # 위의 로깅 설정 재사용
 
   db:
     image: mysql:8.4

@@ -2,6 +2,7 @@ services:
   nginx:
     container_name: nginx-dev
     image: nginx:stable
+    restart: always
     ports:
       - "80:80"
     networks:

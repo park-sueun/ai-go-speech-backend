@@ -1,6 +1,7 @@
 services:
   nginx:
     container_name: nginx-dev
+    image: nginx:stable
     networks:
       - app-network
     volumes:

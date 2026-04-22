@@ -33,7 +33,7 @@ public class UserController {
 	private final UserService userService;
 	private final EmailVerificationService emailVerificationService;
 
-	@GetMapping("/profile")
+	@GetMapping("/me")
 	public ResponseEntity<ApiResponse<UserInfoResponse>> getProfile (
 		@Parameter(hidden = true) @AuthenticationPrincipal String uuid
 	) {

@@ -28,6 +28,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      selenium:
+        condition: service_started
     networks:
       - app-network
     logging: &app-logging
@@ -52,6 +54,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      selenium:
+        condition: service_started
     networks:
       - app-network
     logging: *app-logging # 위 로깅 설정 재사용
@@ -68,6 +72,12 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: always
+    networks:
+      - app-network
+
+  selenium:
+    image: seleniarm/standalone-chromium:latest
     restart: always
     networks:
       - app-network

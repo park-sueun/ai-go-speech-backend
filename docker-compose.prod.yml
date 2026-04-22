@@ -61,6 +61,7 @@ services:
     logging: *app-logging # 위 로깅 설정 재사용
 
   db:
+    image: mysql:8.4
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
@@ -69,6 +70,13 @@ services:
       - .env.prod
     volumes:
       - prod_db_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -84,3 +92,7 @@ services:
 
 volumes:
   prod_db_data:
+
+networks:
+  app-network:
+    driver: bridge

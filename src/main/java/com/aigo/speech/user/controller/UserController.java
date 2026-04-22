@@ -73,7 +73,7 @@ public class UserController {
 		return ResponseEntity.ok(ApiResponse.success(null));
 	}
 
-	@DeleteMapping
+	@DeleteMapping("/me")
 	public ResponseEntity<ApiResponse<Void>> delete (
 		@Parameter(hidden = true) @AuthenticationPrincipal String uuid
 	) {

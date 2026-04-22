@@ -95,14 +95,14 @@ jobs:
             docker compose -f docker-compose.dev.yml --env-file .env.dev up -d app-$TARGET_COLOR
             
             # 새로운 컨테이너 헬스 체크
-            for i in {1..10}; do
-              echo "Health check 진행중... ($i/10)"
+            for i in {1..20}; do
+              echo "Health check 진행중... ($i/20)"
             
               if curl -s http://localhost:$TARGET_PORT/health | grep -q "UP"; then
                 echo "$TARGET_COLOR 가 성공적으로 실행되었습니다!"
                 break
               fi
-              if [ $i -eq 10 ]; then
+              if [ $i -eq 20 ]; then
                 echo "배포 실패: 헬스 체크 타임아웃"
                 exit 1
               fi

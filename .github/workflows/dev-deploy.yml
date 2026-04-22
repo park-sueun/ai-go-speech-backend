@@ -88,6 +88,9 @@ jobs:
             
             echo "$TARGET_COLOR 배포를 시작합니다. (Port: $TARGET_PORT)"
             
+            export ECR_REGISTRY=$ECR_REGISTRY
+            export ECR_REPOSITORY=$ECR_REPOSITORY
+            
             # 새로운 이미지 pull 및 타겟 컨테이너 실행
             docker compose -f docker-compose.dev.yml pull app-$TARGET_COLOR
             docker compose -f docker-compose.dev.yml up -d app-$TARGET_COLOR

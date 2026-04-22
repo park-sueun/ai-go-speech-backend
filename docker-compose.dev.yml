@@ -2,7 +2,10 @@ services:
   nginx:
     container_name: nginx-dev
     image: nginx:stable
-    restart: always
+    restart: unless-stopped
+    depends_on:
+      - app-blue
+      - app-green
     ports:
       - "80:80"
     networks:

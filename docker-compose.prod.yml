@@ -1,8 +1,11 @@
 services:
   nginx:
-    image: nginx:latest
     container_name: nginx
-    restart: always
+    image: nginx:latest
+    restart: unless-stopped
+    depends_on:
+      - app-blue
+      - app-green
     ports:
       - "80:80"
       - "443:443"

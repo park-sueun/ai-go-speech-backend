@@ -35,6 +35,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
     ports:
       - "8082:8080"
       - "5006:5005"   # 원격 디버그용 포트
@@ -63,6 +64,13 @@ services:
       - .env.dev
     volumes:
       - dev_db_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis
@@ -79,3 +87,7 @@ services:
 volumes:
   dev_db_data:
     driver: local
+
+networks:
+  app-network:
+    driver: bridge

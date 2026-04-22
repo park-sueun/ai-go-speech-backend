@@ -6,9 +6,6 @@ services:
       - "80:80"
     networks:
       - app-network
-    depends_on:
-      - app-blue
-      - app-green
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
 

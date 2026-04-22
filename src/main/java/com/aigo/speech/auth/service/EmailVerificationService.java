@@ -27,6 +27,7 @@ public class EmailVerificationService {
     private static final int AUTH_CODE_LENGTH = 6;
     private static final char[] CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".toCharArray();
     private static final SecureRandom random = new SecureRandom();
+    private static final String VERIFIED_PREFIX = "email:verified:"; // 이메일 수정 시 '이메일 인증 여부 확인용' 키 추가
 
     @Value("${spring.mail.auth-code-expiration-min}")
     private int VERIFY_EXPIRY_MINUTES;
@@ -63,10 +64,21 @@ public class EmailVerificationService {
             throw new MailVerificationException("인증번호가 일치하지 않습니다.");
         }
 
+        redisTemplate.opsForValue().set(VERIFIED_PREFIX + email,"true", 5, TimeUnit.MINUTES); // 이메일 인증 확인 여부에 대한 키를 5분간 저장
+
         redisTemplate.delete(key);
     }
 
+    public boolean isVerified(String email) { // 인증 여부 확인
+        return Boolean.TRUE.equals(redisTemplate.hasKey(VERIFIED_PREFIX + email));
+    }
+
+    public void deleteVerifiedStatus(String email) { // 인증 여부 확인 후 삭제
+        redisTemplate.delete(VERIFIED_PREFIX + email);
+    }
+
     private String generateCode () {
+    
         StringBuilder sb = new StringBuilder(AUTH_CODE_LENGTH);
         for (int i = 0; i < AUTH_CODE_LENGTH; i++) {
             sb.append(CHAR_POOL[random.nextInt(CHAR_POOL.length)]);

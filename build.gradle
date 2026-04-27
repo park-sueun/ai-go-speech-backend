@@ -31,12 +31,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
-    // Selenim
-    implementation 'org.seleniumhq.selenium:selenium-java:4.18.1'
-    implementation 'io.github.bonigarcia:webdrivermanager:5.7.0'
-
-    // Jsoup (HTML 파싱 보조)
-    implementation 'org.jsoup:jsoup:1.17.2'
+    // WebClient (AI API 호출)
+    implementation 'org.springframework:spring-webflux'
+    implementation 'io.projectreactor.netty:reactor-netty-http'
     
     // jwt
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'

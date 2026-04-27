@@ -1,5 +1,6 @@
 package com.aigo.speech.user.entity;
 
+import jakarta.persistence.CascadeType;
 import java.util.UUID;
 
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -57,7 +58,7 @@ public class User extends BaseTimeEntity {
 	@Column(name = "provider_id")
 	private String providerId;
 
-	@OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+	@OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private Profile profile;
 
 	@Column(length = 512)
@@ -89,4 +90,5 @@ public class User extends BaseTimeEntity {
 		this.password = encodedPassword;
 	}
 
+	public void changeEmail(String email) { this.email = email;	}
 }

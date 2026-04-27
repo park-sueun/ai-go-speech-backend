@@ -37,8 +37,9 @@ public class InterviewAnswerService {
 	private final InterviewSessionService sessionService;
 
 	@Transactional
-	public SubmitAnswerResponse submitAnswer(UUID sessionUuid, UUID questionUuid, SubmitAnswerRequest request) {
+	public SubmitAnswerResponse submitAnswer(String userUuidStr, UUID sessionUuid, UUID questionUuid, SubmitAnswerRequest request) {
 		InterviewSession session = sessionService.findByUuid(sessionUuid);
+		sessionService.validateOwnership(session, userUuidStr);
 
 		if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
 			throw new InvalidSessionStatusException("진행 중인 면접 세션이 아닙니다.");
@@ -49,6 +50,10 @@ public class InterviewAnswerService {
 
 		if (!question.getSession().getId().equals(session.getId())) {
 			throw new QuestionNotFoundException("해당 세션의 질문이 아닙니다.");
+		}
+
+		if (answerRepository.existsByQuestion(question)) {
+			throw new InvalidSessionStatusException("이미 답변이 제출된 질문입니다.");
 		}
 
 		InterviewAnswer answer = answerRepository.save(new InterviewAnswer(

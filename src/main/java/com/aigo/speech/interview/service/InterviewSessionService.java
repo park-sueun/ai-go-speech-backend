@@ -59,13 +59,15 @@ public class InterviewSessionService {
 		return toResponse(session, null);
 	}
 
-	public SseEmitter subscribeToSession(UUID sessionUuid) {
-		findByUuid(sessionUuid);
+	public SseEmitter subscribeToSession(String userUuidStr, UUID sessionUuid) {
+		InterviewSession session = findByUuid(sessionUuid);
+		validateOwnership(session, userUuidStr);
 		return sseEmitterService.register(sessionUuid);
 	}
 
-	public InterviewSessionResponse getSession(UUID sessionUuid) {
+	public InterviewSessionResponse getSession(String userUuidStr, UUID sessionUuid) {
 		InterviewSession session = findByUuid(sessionUuid);
+		validateOwnership(session, userUuidStr);
 
 		List<InterviewQuestionResponse> questions = questionRepository
 			.findBySessionOrderBySequenceOrderAsc(session)
@@ -79,6 +81,12 @@ public class InterviewSessionService {
 	public InterviewSession findByUuid(UUID uuid) {
 		return sessionRepository.findByUuid(uuid)
 			.orElseThrow(() -> new InterviewSessionNotFoundException("면접 세션을 찾을 수 없습니다."));
+	}
+
+	public void validateOwnership(InterviewSession session, String userUuidStr) {
+		if (!session.getUser().getUuid().equals(UUID.fromString(userUuidStr))) {
+			throw new InterviewSessionNotFoundException("면접 세션을 찾을 수 없습니다.");
+		}
 	}
 
 	private InterviewSessionResponse toResponse(InterviewSession session, List<InterviewQuestionResponse> questions) {

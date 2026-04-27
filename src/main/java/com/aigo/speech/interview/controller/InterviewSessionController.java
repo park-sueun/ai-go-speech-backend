@@ -47,7 +47,7 @@ public class InterviewSessionController {
 		@AuthenticationPrincipal String userUuid,
 		@PathVariable UUID uuid
 	) {
-		return sessionService.subscribeToSession(uuid);
+		return sessionService.subscribeToSession(userUuid, uuid);
 	}
 
 	@GetMapping("/{uuid}")
@@ -55,7 +55,7 @@ public class InterviewSessionController {
 		@AuthenticationPrincipal String userUuid,
 		@PathVariable UUID uuid
 	) {
-		InterviewSessionResponse response = sessionService.getSession(uuid);
+		InterviewSessionResponse response = sessionService.getSession(userUuid, uuid);
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
@@ -66,7 +66,7 @@ public class InterviewSessionController {
 		@PathVariable UUID questionUuid,
 		@RequestBody @Valid SubmitAnswerRequest request
 	) {
-		SubmitAnswerResponse response = answerService.submitAnswer(uuid, questionUuid, request);
+		SubmitAnswerResponse response = answerService.submitAnswer(userUuid, uuid, questionUuid, request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
 	}
 }

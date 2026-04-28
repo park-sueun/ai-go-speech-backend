@@ -4,12 +4,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.aigo.speech.global.entity.BaseTimeEntity;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.user.entity.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -27,6 +30,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "interview_session")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class InterviewSession extends BaseTimeEntity {
 
 	@Id

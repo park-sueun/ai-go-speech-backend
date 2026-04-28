@@ -3,11 +3,14 @@ package com.aigo.speech.answer.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.aigo.speech.global.entity.BaseTimeEntity;
 import com.aigo.speech.question.entity.InterviewQuestion;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -23,6 +26,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "interview_answer")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class InterviewAnswer extends BaseTimeEntity {
 
 	@Id

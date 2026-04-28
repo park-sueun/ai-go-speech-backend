@@ -2,8 +2,13 @@ package com.aigo.speech.answer.entity;
 
 import java.math.BigDecimal;
 
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import com.aigo.speech.global.entity.BaseTimeEntity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -19,7 +24,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "answer_score")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class AnswerScore {
+@EntityListeners(AuditingEntityListener.class)
+public class AnswerScore extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

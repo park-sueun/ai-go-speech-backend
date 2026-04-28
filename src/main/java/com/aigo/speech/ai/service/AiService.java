@@ -26,7 +26,7 @@ public class AiService {
 	private final AiProperties props;
 	private final PromptRenderer promptRenderer;
 
-	public AiService(List<AiProvider> clients, AiProperties props, PromptRenderer promptRenderer) {
+	public AiService (List<AiProvider> clients, AiProperties props, PromptRenderer promptRenderer) {
 		this.clients = clients.stream()
 			.sorted(Comparator.comparingInt(AiProvider::getPriority))
 			.toList();
@@ -37,7 +37,7 @@ public class AiService {
 	/**
 	 * 동기 호출. ai.provider 설정 시 해당 공급자만 사용, 미설정 시 우선순위 순 폴백.
 	 */
-	public AiResponse complete(AiPromptRequest request) {
+	public AiResponse complete (AiPromptRequest request) {
 		String renderedPrompt = promptRenderer.render(request.template(), request.variables());
 		String targetProvider = props.provider();
 
@@ -45,10 +45,15 @@ public class AiService {
 			? clients.stream().filter(c -> c.getProvider().equals(targetProvider)).toList()
 			: clients;
 
+		if (targets.isEmpty()) {
+			throw new AiException("설정된 AI Provider를 찾을 수 없습니다: " + targetProvider);
+		}
+
 		AiException lastException = null;
 
 		for (AiProvider client : targets) {
-			if (!client.isEnabled()) continue;
+			if (!client.isEnabled())
+				continue;
 			try {
 				AiResponse response = callWithRetry(client, request, renderedPrompt);
 				log.info("[AI] 완료. provider={}, model={}", response.provider(), response.model());
@@ -66,11 +71,11 @@ public class AiService {
 	 * 비동기 호출. aiExecutor 스레드풀에서 실행됩니다.
 	 */
 	@Async("aiExecutor")
-	public CompletableFuture<AiResponse> completeAsync(AiPromptRequest request) {
+	public CompletableFuture<AiResponse> completeAsync (AiPromptRequest request) {
 		return CompletableFuture.completedFuture(complete(request));
 	}
 
-	private AiResponse callWithRetry(AiProvider client, AiPromptRequest request, String renderedPrompt) {
+	private AiResponse callWithRetry (AiProvider client, AiPromptRequest request, String renderedPrompt) {
 		int maxAttempts = props.retry().maxAttempts();
 		long delayMs = props.retry().delayMs();
 
@@ -81,14 +86,18 @@ public class AiService {
 			} catch (AiRateLimitException e) {
 				if (attempt < maxAttempts) {
 					long waitMs = delayMs * attempt;
-					log.warn("[AI] Rate limit, {}ms 후 재시도. provider={}, attempt={}/{}", waitMs, client.getProvider(), attempt, maxAttempts);
+					log.warn(
+						"[AI] Rate limit, {}ms 후 재시도. provider={}, attempt={}/{}", waitMs, client.getProvider(),
+						attempt, maxAttempts
+					);
 					sleep(waitMs);
 					continue;
 				}
 				throw e;
 			} catch (AiTimeoutException e) {
 				if (attempt < maxAttempts) {
-					log.warn("[AI] Timeout, 즉시 재시도. provider={}, attempt={}/{}", client.getProvider(), attempt, maxAttempts);
+					log.warn(
+						"[AI] Timeout, 즉시 재시도. provider={}, attempt={}/{}", client.getProvider(), attempt, maxAttempts);
 					continue;
 				}
 				throw e;
@@ -97,7 +106,7 @@ public class AiService {
 		throw new AiException(client.getProvider() + " 재시도 횟수 초과");
 	}
 
-	private void sleep(long ms) {
+	private void sleep (long ms) {
 		try {
 			Thread.sleep(ms);
 		} catch (InterruptedException e) {

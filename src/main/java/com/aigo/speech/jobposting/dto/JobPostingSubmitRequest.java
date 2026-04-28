@@ -7,13 +7,9 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class JobPostingAnalyzeRequest {
+public class JobPostingSubmitRequest {
 
 	@NotBlank(message = "URL을 입력해주세요.")
-	@Pattern(
-		regexp = "^https?://.*",
-		message = "올바른 URL 형식이 아닙니다."
-	)
+	@Pattern(regexp = "^https?://.*", message = "올바른 URL 형식이 아닙니다.")
 	private String url;
-	
 }

@@ -1,61 +1,128 @@
 package com.aigo.speech.jobposting.crawler;
 
-import java.net.URL;
-import java.time.Duration;
+import java.util.Set;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.remote.RemoteWebDriver;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.springframework.beans.factory.annotation.Value;
-
+import com.aigo.speech.jobposting.config.PlaywrightProperties;
 import com.aigo.speech.jobposting.exception.JobPostingCrawlException;
+import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.TimeoutError;
+import com.microsoft.playwright.options.LoadState;
+import com.microsoft.playwright.options.WaitUntilState;
 
-import io.github.bonigarcia.wdm.WebDriverManager;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class BaseCrawler implements JobPostingCrawler {
 
-	@Value("${selenium.remote-url:}")
-	private String seleniumRemoteUrl;
+	private static final Set<String> BLOCKED_RESOURCE_TYPES = Set.of("image", "media", "font", "stylesheet");
+	private static final Set<String> BLOCKED_DOMAINS = Set.of(
+		"google-analytics.com", "googletagmanager.com", "doubleclick.net",
+		"facebook.net", "amplitude.com", "mixpanel.com",
+		"hotjar.com", "clarity.ms", "segment.io", "segment.com"
+	);
 
-	protected WebDriver createDriver () {
-		ChromeOptions options = new ChromeOptions();
-		options.addArguments("--headless=new");
-		options.addArguments("--no-sandbox");
-		options.addArguments("--disable-dev-shm-usage");
-		options.addArguments("--disable-gpu");
-		options.addArguments(
-			"user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-				"AppleWebKit/537.36 (KHTML, like Gecko) " +
-				"Chrome/120.0.0.0 Safari/537.36"
-		);
+	protected final BrowserPool browserPool;
+	protected final PlaywrightProperties props;
 
+	protected BaseCrawler(BrowserPool browserPool, PlaywrightProperties props) {
+		this.browserPool = browserPool;
+		this.props = props;
+	}
+
+	protected String crawlWithSelectors(String url, String... selectors) {
+		BrowserContext context = browserPool.acquireContext();
 		try {
-			if (!seleniumRemoteUrl.isBlank()) {
-				return new RemoteWebDriver(new URL(seleniumRemoteUrl), options);
+			Page page = context.newPage();
+			try {
+				blockUnnecessaryResources(page);
+				navigate(page, url);
+
+				String text = extractBySelectors(page, selectors);
+				if (text != null && !text.isBlank()) {
+					log.debug("[Crawler] 셀렉터 추출 완료. url={}, length={}", url, text.length());
+					return truncate(text);
+				}
+
+				// 셀렉터 불일치 시 body 전체 텍스트로 폴백
+				log.debug("[Crawler] 셀렉터 불일치, body 텍스트 폴백. url={}", url);
+				Object bodyText = page.evaluate("document.body.innerText");
+				String body = bodyText != null ? bodyText.toString().strip() : "";
+				return truncate(body);
+
+			} catch (TimeoutError e) {
+				throw new JobPostingCrawlException("페이지 로드 타임아웃: " + url, e);
+			} catch (com.microsoft.playwright.PlaywrightException e) {
+				throw new JobPostingCrawlException("페이지 로드 실패: " + url, e);
+			} finally {
+				closeSilently(page);
 			}
-			WebDriverManager.chromedriver().setup();
-			return new ChromeDriver(options);
-		} catch (JobPostingCrawlException e) {
-			throw e;
-		} catch (Exception e) {
-			log.error("[BaseCrawler] WebDriver 생성 실패. remoteUrl={}", seleniumRemoteUrl, e);
-			throw new JobPostingCrawlException("크롬 드라이버 초기화 실패");
+		} finally {
+			closeSilently(context);
 		}
 	}
 
-	protected String getBodyText (WebDriver driver) {
-		return driver.findElement(By.tagName("body")).getText();
+	private void blockUnnecessaryResources(Page page) {
+		page.route("**/*", route -> {
+			String type = route.request().resourceType();
+			String requestUrl = route.request().url();
+			if (BLOCKED_RESOURCE_TYPES.contains(type) || isTrackerDomain(requestUrl)) {
+				route.abort();
+			} else {
+				route.resume();
+			}
+		});
 	}
 
-	protected void waitForElement (WebDriver driver, By selector, int seconds) {
-		new WebDriverWait(driver, Duration.ofSeconds(seconds))
-			.until(ExpectedConditions.presenceOfElementLocated(selector));
+	private boolean isTrackerDomain(String url) {
+		return BLOCKED_DOMAINS.stream().anyMatch(url::contains);
 	}
 
+	private void navigate(Page page, String url) {
+		page.navigate(url, new Page.NavigateOptions()
+			.setTimeout(props.navigationTimeoutMs())
+			.setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
+
+		// React/SPA 동적 콘텐츠 대기. 타임아웃 시 DOMCONTENTLOADED 기준으로 계속 진행
+		try {
+			page.waitForLoadState(LoadState.NETWORKIDLE,
+				new Page.WaitForLoadStateOptions().setTimeout(5000));
+		} catch (TimeoutError e) {
+			log.debug("[Crawler] NETWORKIDLE 타임아웃, DOMCONTENTLOADED 기준으로 계속. url={}", url);
+		}
+	}
+
+	private String extractBySelectors(Page page, String[] selectors) {
+		for (String selector : selectors) {
+			try {
+				page.waitForSelector(selector,
+					new Page.WaitForSelectorOptions().setTimeout(3000));
+				Object text = page.evaluate(
+					"sel => document.querySelector(sel)?.innerText ?? ''", selector
+				);
+				if (text != null) {
+					String extracted = text.toString().strip();
+					if (extracted.length() >= 100) {
+						return extracted;
+					}
+				}
+			} catch (TimeoutError ignored) {
+			} catch (Exception e) {
+				log.debug("[Crawler] 셀렉터 시도 실패: selector={}", selector);
+			}
+		}
+		return null;
+	}
+
+	private String truncate(String text) {
+		if (text == null || text.length() <= props.maxTextLength()) return text;
+		return text.substring(0, props.maxTextLength());
+	}
+
+	private void closeSilently(AutoCloseable resource) {
+		try {
+			resource.close();
+		} catch (Exception ignored) {
+		}
+	}
 }

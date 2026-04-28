@@ -8,7 +8,7 @@ import org.springframework.core.io.ClassPathResource;
 
 public enum PromptTemplate {
 
-	JOB_POSTING_PARSE_V1("prompts/job_posting_parse_v1.txt");
+	JOB_ANALYSIS_V1("prompts/job_analysis_v1.txt");
 
 	private final String path;
 	private volatile String content;

@@ -18,6 +18,7 @@ import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.global.dto.ApiResponse;
 import com.aigo.speech.jobposting.exception.InvalidUrlException;
 import com.aigo.speech.jobposting.exception.JobPostingCrawlException;
+import com.aigo.speech.jobposting.exception.JobPostingNotFoundException;
 import com.aigo.speech.jobposting.exception.JobPostingParseException;
 import com.aigo.speech.jobposting.exception.UnsupportedSiteException;
 import com.aigo.speech.mail.exception.MailSendException;
@@ -112,6 +113,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(JobPostingParseException.class)
 	public ResponseEntity<ApiResponse<?>> handleParseException (JobPostingParseException e) {
 		return ResponseEntity.internalServerError().body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(JobPostingNotFoundException.class)
+	public ResponseEntity<ApiResponse<?>> handleJobPostingNotFound (JobPostingNotFoundException e) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
 	}
 
 }

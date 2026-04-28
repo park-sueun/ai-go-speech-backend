@@ -64,8 +64,6 @@ public class GeminiProvider implements AiProvider {
 
 	@SuppressWarnings("unchecked")
 	private String callApi(String prompt, int maxTokens) {
-		String url = props.gemini().apiUrl() + "?key=" + props.gemini().apiKey();
-
 		Map<String, Object> body = Map.of(
 			"contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
 			"generationConfig", Map.of(
@@ -76,8 +74,11 @@ public class GeminiProvider implements AiProvider {
 
 		try {
 			Map<?, ?> responseBody = webClient.post()
-				.uri(url)
-				.headers(headers -> headers.setContentType(MediaType.APPLICATION_JSON))
+				.uri(props.gemini().apiUrl())
+				.headers(headers -> {
+					headers.setContentType(MediaType.APPLICATION_JSON);
+					headers.set("x-goog-api-key", props.gemini().apiKey());
+				})
 				.bodyValue(body)
 				.retrieve()
 				.onStatus(
@@ -98,7 +99,13 @@ public class GeminiProvider implements AiProvider {
 			List<Map<?, ?>> candidates = (List<Map<?, ?>>) responseBody.get("candidates");
 			Map<?, ?> content = (Map<?, ?>) candidates.get(0).get("content");
 			List<Map<?, ?>> parts = (List<Map<?, ?>>) content.get("parts");
-			String raw = (String) parts.get(0).get("text");
+			// thinking 모델(gemini-2.5-*)은 parts[0]이 thought 파트 → thought가 아닌 첫 텍스트 파트를 사용
+			String raw = parts.stream()
+				.filter(part -> !Boolean.TRUE.equals(part.get("thought")))
+				.map(part -> (String) part.get("text"))
+				.filter(text -> text != null && !text.isBlank())
+				.findFirst()
+				.orElse("");
 			return raw.replaceAll("(?s)```json\\s*|```\\s*", "").trim();
 
 		} catch (AiException e) {

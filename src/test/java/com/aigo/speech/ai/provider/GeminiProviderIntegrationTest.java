@@ -53,12 +53,12 @@ class GeminiProviderIntegrationTest {
 		String apiKey = System.getenv("GEMINI_API_KEY");
 		String apiUrl = System.getenv("GEMINI_API_URL") != null
 			? System.getenv("GEMINI_API_URL")
-			: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+			: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 		AiProperties props = new AiProperties(
 			null,
 			null,
-			new AiProperties.ProviderProperties(apiKey, apiUrl, "gemini-2.0-flash", 2, true),
+			new AiProperties.ProviderProperties(apiKey, apiUrl, "gemini-2.5-flash", 2, true),
 			new AiProperties.RetryProperties(1, 1000),
 			new AiProperties.TimeoutProperties(10_000, 30_000)
 		);

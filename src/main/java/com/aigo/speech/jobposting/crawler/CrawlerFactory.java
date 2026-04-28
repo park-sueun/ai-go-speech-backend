@@ -14,12 +14,10 @@ public class CrawlerFactory {
 
 	private final List<JobPostingCrawler> crawlers;
 
-	public JobPostingCrawler getCrawler (String url) {
+	public JobPostingCrawler getCrawler(String url) {
 		return crawlers.stream()
-			.filter(crawler -> crawler.supports(url))
+			.filter(c -> c.supports(url))
 			.findFirst()
-			.orElseThrow(() -> new UnsupportedSiteException(
-				"지원하지 않는 채용 사이트입니다."
-			));
+			.orElseThrow(() -> new UnsupportedSiteException("지원하지 않는 채용 사이트입니다: " + url));
 	}
 }

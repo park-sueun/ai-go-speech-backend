@@ -85,10 +85,9 @@ class AiServiceIntegrationTest {
 	@Test
 	@DisplayName("AiService - PromptTemplate으로 채용공고 분석 후 AiResponse 수신")
 	void analyzeJobPosting_viaAiService() {
-		AiPromptRequest request = AiPromptRequest.of(
-			PromptTemplate.JOB_POSTING_PARSE_V1.getContent(),
-			Map.of("rawText", KAKAO_JOB_POSTING)
-		);
+		String rendered = PromptTemplate.JOB_ANALYSIS_V1.getContent()
+			.replace("{{rawText}}", KAKAO_JOB_POSTING);
+		AiPromptRequest request = AiPromptRequest.of(rendered, Map.of());
 
 		AiResponse response = aiService.complete(request);
 

@@ -6,8 +6,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.aigo.speech.answer.dto.SubmitAnswerRequest;
-import com.aigo.speech.answer.dto.SubmitAnswerResponse;
 import com.aigo.speech.answer.entity.AnswerScore;
 import com.aigo.speech.answer.entity.InterviewAnswer;
 import com.aigo.speech.answer.repository.AnswerScoreRepository;
@@ -18,6 +16,8 @@ import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
 import com.aigo.speech.interview.service.InterviewSessionService;
 import com.aigo.speech.interview.service.SseEmitterService;
+import com.aigo.speech.question.dto.SubmitAnswerRequest;
+import com.aigo.speech.question.dto.SubmitAnswerResponse;
 import com.aigo.speech.question.entity.InterviewQuestion;
 import com.aigo.speech.question.exception.QuestionNotFoundException;
 import com.aigo.speech.question.repository.InterviewQuestionRepository;
@@ -39,21 +39,15 @@ public class InterviewAnswerService {
 	private final InterviewSessionService sessionService;
 
 	@Transactional
-	public SubmitAnswerResponse submitAnswer(String userUuidStr, UUID sessionUuid, UUID questionUuid,
-		SubmitAnswerRequest request) {
-
-		InterviewSession session = sessionService.findByUuid(sessionUuid);
-		sessionService.validateOwnership(session, userUuidStr);
-
-		if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
-			throw new InvalidSessionStatusException("진행 중인 면접 세션이 아닙니다.");
-		}
+	public SubmitAnswerResponse submitAnswer (String userUuidStr, UUID questionUuid, SubmitAnswerRequest request) {
 
 		InterviewQuestion question = questionRepository.findByUuid(questionUuid)
 			.orElseThrow(() -> new QuestionNotFoundException("질문을 찾을 수 없습니다."));
 
-		if (!question.getSession().getId().equals(session.getId())) {
-			throw new QuestionNotFoundException("해당 세션의 질문이 아닙니다.");
+		InterviewSession session = question.getSession();
+		sessionService.validateOwnership(session, userUuidStr);
+		if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
+			throw new InvalidSessionStatusException("진행 중인 면접 세션이 아닙니다.");
 		}
 
 		if (answerRepository.existsByQuestion(question)) {
@@ -77,7 +71,7 @@ public class InterviewAnswerService {
 			request.getAnswerDuration()
 		));
 
-		log.info("[Answer] 답변 제출 완료. sessionUuid={}, questionUuid={}", sessionUuid, questionUuid);
+		log.info("[Answer] 답변 제출 완료. sessionUuid={}, questionUuid={}", session.getUuid(), question.getUuid());
 
 		long totalQuestions = questionRepository.countBySession(session);
 		long totalAnswers = answerRepository.countBySession(session);
@@ -88,11 +82,13 @@ public class InterviewAnswerService {
 			sessionRepository.save(session);
 			sessionCompleted = true;
 
-			sseEmitterService.sendEvent(sessionUuid, "SESSION_COMPLETED",
-				Map.of("sessionUuid", sessionUuid.toString()));
-			sseEmitterService.complete(sessionUuid);
+			sseEmitterService.sendEvent(
+				session.getUuid(), "SESSION_COMPLETED",
+				Map.of("sessionUuid", session.getUuid().toString())
+			);
+			sseEmitterService.complete(session.getUuid());
 
-			log.info("[Answer] 세션 완료. sessionUuid={}", sessionUuid);
+			log.info("[Answer] 세션 완료. sessionUuid={}", session.getUuid());
 		}
 
 		return new SubmitAnswerResponse(answer.getUuid(), sessionCompleted);

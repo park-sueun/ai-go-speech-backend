@@ -35,18 +35,15 @@ public class InterviewSessionService {
 	private final UserRepository userRepository;
 	private final JobPostingRepository jobPostingRepository;
 	private final SseEmitterService sseEmitterService;
-	private final InterviewQuestionService questionGenerationService;
+	private final InterviewQuestionService questionService;
 
 	@Transactional
 	public InterviewSessionResponse createSession(String userUuidStr, CreateSessionRequest request) {
 		User user = userRepository.findByUuid(UUID.fromString(userUuidStr))
 			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
 
-		JobPosting jobPosting = null;
-		if (request.getJobPostingUuid() != null) {
-			jobPosting = jobPostingRepository.findByUuid(request.getJobPostingUuid())
-				.orElseThrow(() -> new InterviewSessionNotFoundException("채용 공고를 찾을 수 없습니다."));
-		}
+		JobPosting jobPosting = jobPostingRepository.findByUuid(request.getJobPostingUuid())
+			.orElseThrow(() -> new InterviewSessionNotFoundException("채용 공고를 찾을 수 없습니다."));
 
 		InterviewSession session = new InterviewSession(
 			user, jobPosting, request.isRetry(), request.getInterviewDate()
@@ -55,7 +52,7 @@ public class InterviewSessionService {
 
 		log.info("[Interview] Session created. uuid={}", session.getUuid());
 
-		questionGenerationService.generateQuestionsAsync(session.getId(), request.getJobPostingContext());
+		questionService.generateQuestionsAsync(session.getId());
 
 		return toResponse(session, null);
 	}

@@ -1,7 +1,10 @@
-package com.aigo.speech.interview.entity;
+package com.aigo.speech.answer.entity;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import com.aigo.speech.global.entity.BaseTimeEntity;
+import com.aigo.speech.question.entity.InterviewQuestion;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,7 +23,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "interview_answer")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class InterviewAnswer {
+public class InterviewAnswer extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,9 +53,6 @@ public class InterviewAnswer {
 	@Column(name = "answer_ended_at")
 	private LocalDateTime answerEndedAt;
 
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private LocalDateTime createdAt;
-
 	public InterviewAnswer(InterviewQuestion question, String audioUrl, String sttText,
 		Integer duration, String silenceIntervalsJson,
 		LocalDateTime answerStartedAt, LocalDateTime answerEndedAt) {
@@ -64,6 +64,5 @@ public class InterviewAnswer {
 		this.silenceIntervalsJson = silenceIntervalsJson;
 		this.answerStartedAt = answerStartedAt;
 		this.answerEndedAt = answerEndedAt;
-		this.createdAt = LocalDateTime.now();
 	}
 }

@@ -9,14 +9,15 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
-import com.aigo.speech.interview.dto.InterviewQuestionResponse;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
-import com.aigo.speech.interview.repository.InterviewQuestionRepository;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.jobposting.repository.JobPostingRepository;
+import com.aigo.speech.question.dto.InterviewQuestionResponse;
+import com.aigo.speech.question.repository.InterviewQuestionRepository;
+import com.aigo.speech.question.service.InterviewQuestionService;
 import com.aigo.speech.user.entity.User;
 import com.aigo.speech.user.repository.UserRepository;
 
@@ -34,7 +35,7 @@ public class InterviewSessionService {
 	private final UserRepository userRepository;
 	private final JobPostingRepository jobPostingRepository;
 	private final SseEmitterService sseEmitterService;
-	private final InterviewQuestionGenerationService questionGenerationService;
+	private final InterviewQuestionService questionGenerationService;
 
 	@Transactional
 	public InterviewSessionResponse createSession(String userUuidStr, CreateSessionRequest request) {

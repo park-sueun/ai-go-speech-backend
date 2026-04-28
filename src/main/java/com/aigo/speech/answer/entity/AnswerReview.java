@@ -1,4 +1,4 @@
-package com.aigo.speech.interview.entity;
+package com.aigo.speech.answer.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

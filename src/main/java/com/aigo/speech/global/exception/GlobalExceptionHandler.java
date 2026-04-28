@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
-import com.aigo.speech.interview.exception.QuestionNotFoundException;
+import com.aigo.speech.question.exception.QuestionNotFoundException;
 import com.aigo.speech.auth.exception.DuplicateEmailException;
 import com.aigo.speech.auth.exception.DuplicateNicknameException;
 import com.aigo.speech.auth.exception.InvalidCredentialsException;

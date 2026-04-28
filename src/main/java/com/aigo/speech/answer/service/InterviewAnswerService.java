@@ -1,4 +1,4 @@
-package com.aigo.speech.interview.service;
+package com.aigo.speech.answer.service;
 
 import java.util.Map;
 import java.util.UUID;
@@ -6,19 +6,21 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.aigo.speech.interview.dto.SubmitAnswerRequest;
-import com.aigo.speech.interview.dto.SubmitAnswerResponse;
-import com.aigo.speech.interview.entity.AnswerScore;
-import com.aigo.speech.interview.entity.InterviewAnswer;
-import com.aigo.speech.interview.entity.InterviewQuestion;
+import com.aigo.speech.answer.dto.SubmitAnswerRequest;
+import com.aigo.speech.answer.dto.SubmitAnswerResponse;
+import com.aigo.speech.answer.entity.AnswerScore;
+import com.aigo.speech.answer.entity.InterviewAnswer;
+import com.aigo.speech.answer.repository.AnswerScoreRepository;
+import com.aigo.speech.answer.repository.InterviewAnswerRepository;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
-import com.aigo.speech.interview.exception.QuestionNotFoundException;
-import com.aigo.speech.interview.repository.AnswerScoreRepository;
-import com.aigo.speech.interview.repository.InterviewAnswerRepository;
-import com.aigo.speech.interview.repository.InterviewQuestionRepository;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
+import com.aigo.speech.interview.service.InterviewSessionService;
+import com.aigo.speech.interview.service.SseEmitterService;
+import com.aigo.speech.question.entity.InterviewQuestion;
+import com.aigo.speech.question.exception.QuestionNotFoundException;
+import com.aigo.speech.question.repository.InterviewQuestionRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +39,9 @@ public class InterviewAnswerService {
 	private final InterviewSessionService sessionService;
 
 	@Transactional
-	public SubmitAnswerResponse submitAnswer(String userUuidStr, UUID sessionUuid, UUID questionUuid, SubmitAnswerRequest request) {
+	public SubmitAnswerResponse submitAnswer(String userUuidStr, UUID sessionUuid, UUID questionUuid,
+		SubmitAnswerRequest request) {
+
 		InterviewSession session = sessionService.findByUuid(sessionUuid);
 		sessionService.validateOwnership(session, userUuidStr);
 
@@ -73,7 +77,7 @@ public class InterviewAnswerService {
 			request.getAnswerDuration()
 		));
 
-		log.info("[Interview] Answer submitted. sessionUuid={}, questionUuid={}", sessionUuid, questionUuid);
+		log.info("[Answer] 답변 제출 완료. sessionUuid={}, questionUuid={}", sessionUuid, questionUuid);
 
 		long totalQuestions = questionRepository.countBySession(session);
 		long totalAnswers = answerRepository.countBySession(session);
@@ -88,7 +92,7 @@ public class InterviewAnswerService {
 				Map.of("sessionUuid", sessionUuid.toString()));
 			sseEmitterService.complete(sessionUuid);
 
-			log.info("[Interview] Session completed. sessionUuid={}", sessionUuid);
+			log.info("[Answer] 세션 완료. sessionUuid={}", sessionUuid);
 		}
 
 		return new SubmitAnswerResponse(answer.getUuid(), sessionCompleted);

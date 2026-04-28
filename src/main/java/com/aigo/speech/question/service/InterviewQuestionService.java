@@ -1,4 +1,4 @@
-package com.aigo.speech.interview.service;
+package com.aigo.speech.question.service;
 
 import java.util.List;
 import java.util.Map;
@@ -19,11 +19,12 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.aigo.speech.interview.dto.JobPostingContext;
-import com.aigo.speech.interview.entity.InterviewQuestion;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
-import com.aigo.speech.interview.repository.InterviewQuestionRepository;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
+import com.aigo.speech.interview.service.SseEmitterService;
+import com.aigo.speech.question.entity.InterviewQuestion;
+import com.aigo.speech.question.repository.InterviewQuestionRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,7 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class InterviewQuestionGenerationService {
+public class InterviewQuestionService {
 
 	private final InterviewSessionRepository sessionRepository;
 	private final InterviewQuestionRepository questionRepository;
@@ -154,10 +155,10 @@ public class InterviewQuestionGenerationService {
 	@SuppressWarnings("unchecked")
 	private String extractText(Map<?, ?> body) {
 		try {
-			List<Map<?, ?>> candidates = (List<Map<?, ?>>)body.get("candidates");
-			Map<?, ?> content = (Map<?, ?>)candidates.get(0).get("content");
-			List<Map<?, ?>> parts = (List<Map<?, ?>>)content.get("parts");
-			String raw = (String)parts.get(0).get("text");
+			List<Map<?, ?>> candidates = (List<Map<?, ?>>) body.get("candidates");
+			Map<?, ?> content = (Map<?, ?>) candidates.get(0).get("content");
+			List<Map<?, ?>> parts = (List<Map<?, ?>>) content.get("parts");
+			String raw = (String) parts.get(0).get("text");
 			return raw.replaceAll("(?s)```json\\s*|```\\s*", "").trim();
 		} catch (Exception e) {
 			throw new RuntimeException("Gemini 응답 구조 파싱 실패");
@@ -165,9 +166,7 @@ public class InterviewQuestionGenerationService {
 	}
 
 	private String join(List<String> list) {
-		if (list == null || list.isEmpty()) {
-			return "";
-		}
+		if (list == null || list.isEmpty()) return "";
 		return String.join(", ", list);
 	}
 }

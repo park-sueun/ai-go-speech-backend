@@ -1,4 +1,4 @@
-package com.aigo.speech.interview.dto;
+package com.aigo.speech.answer.dto;
 
 import java.time.LocalDateTime;
 

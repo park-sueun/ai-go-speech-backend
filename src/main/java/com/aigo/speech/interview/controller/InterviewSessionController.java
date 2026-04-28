@@ -17,9 +17,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.aigo.speech.global.dto.ApiResponse;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
-import com.aigo.speech.interview.dto.SubmitAnswerRequest;
-import com.aigo.speech.interview.dto.SubmitAnswerResponse;
-import com.aigo.speech.interview.service.InterviewAnswerService;
 import com.aigo.speech.interview.service.InterviewSessionService;
 
 import jakarta.validation.Valid;
@@ -31,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 public class InterviewSessionController {
 
 	private final InterviewSessionService sessionService;
-	private final InterviewAnswerService answerService;
 
 	@PostMapping
 	public ResponseEntity<ApiResponse<InterviewSessionResponse>> createSession(
@@ -59,14 +55,4 @@ public class InterviewSessionController {
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
-	@PostMapping("/{uuid}/questions/{questionUuid}/answers")
-	public ResponseEntity<ApiResponse<SubmitAnswerResponse>> submitAnswer(
-		@AuthenticationPrincipal String userUuid,
-		@PathVariable UUID uuid,
-		@PathVariable UUID questionUuid,
-		@RequestBody @Valid SubmitAnswerRequest request
-	) {
-		SubmitAnswerResponse response = answerService.submitAnswer(userUuid, uuid, questionUuid, request);
-		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
-	}
 }

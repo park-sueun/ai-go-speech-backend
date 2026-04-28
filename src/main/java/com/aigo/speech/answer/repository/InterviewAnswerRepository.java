@@ -1,4 +1,4 @@
-package com.aigo.speech.interview.repository;
+package com.aigo.speech.answer.repository;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -7,11 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.aigo.speech.interview.entity.InterviewAnswer;
-import com.aigo.speech.interview.entity.InterviewQuestion;
+import com.aigo.speech.answer.entity.InterviewAnswer;
 import com.aigo.speech.interview.entity.InterviewSession;
+import com.aigo.speech.question.entity.InterviewQuestion;
 
 public interface InterviewAnswerRepository extends JpaRepository<InterviewAnswer, Long> {
+
 	Optional<InterviewAnswer> findByUuid(UUID uuid);
 
 	boolean existsByQuestion(InterviewQuestion question);

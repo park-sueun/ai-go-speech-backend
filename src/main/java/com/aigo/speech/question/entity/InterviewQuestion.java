@@ -1,7 +1,9 @@
-package com.aigo.speech.interview.entity;
+package com.aigo.speech.question.entity;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
+
+import com.aigo.speech.global.entity.BaseTimeEntity;
+import com.aigo.speech.interview.entity.InterviewSession;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "interview_question")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class InterviewQuestion {
+public class InterviewQuestion extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,14 +41,10 @@ public class InterviewQuestion {
 	@Column(name = "sequence_order", nullable = false)
 	private int sequenceOrder;
 
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private LocalDateTime createdAt;
-
-	public InterviewQuestion(InterviewSession session, String content, int sequenceOrder) {
+	public InterviewQuestion (InterviewSession session, String content, int sequenceOrder) {
 		this.uuid = UUID.randomUUID();
 		this.session = session;
 		this.content = content;
 		this.sequenceOrder = sequenceOrder;
-		this.createdAt = LocalDateTime.now();
 	}
 }

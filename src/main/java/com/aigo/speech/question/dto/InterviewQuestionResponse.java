@@ -1,4 +1,4 @@
-package com.aigo.speech.interview.dto;
+package com.aigo.speech.question.dto;
 
 import java.util.UUID;
 

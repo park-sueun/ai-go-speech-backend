@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<?>> handleMailSendException (MailSendException e) {
 		return ResponseEntity.internalServerError().body(ApiResponse.fail(e.getMessage()));
 	}
-
+	
 	@ExceptionHandler(DuplicateEmailException.class)
 	public ResponseEntity<ApiResponse<?>> handleDuplicateEmail (DuplicateEmailException e) {
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(e.getMessage()));
@@ -93,6 +93,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(SamePasswordException.class)
 	public ResponseEntity<ApiResponse<?>> handleSamePassword (SamePasswordException e) {
 		return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(IllegalStateException.class)
+	public ResponseEntity<ApiResponse<?>> handleIllegalState (IllegalStateException e) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
 	}
 
 	@ExceptionHandler(InvalidUrlException.class)

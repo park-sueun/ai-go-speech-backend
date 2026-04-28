@@ -1,21 +1,33 @@
 services:
-  app:
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+
+  app-blue:
     image: myapp:latest
     networks:
       - app-network
-    depends_on:
-      db:
-        condition: service_healthy
 
-  db:
-    image: mysql:8.4
+  app-green:
+    image: myapp:latest
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+
+#  db:
+#    image: mysql:8.4
+#    networks:
+#      - app-network
+#    healthcheck:
+#      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
 
 networks:
   app-network:

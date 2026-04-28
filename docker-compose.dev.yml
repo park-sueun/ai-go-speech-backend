@@ -17,12 +17,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-      selenium:
-        condition: service_started
 
   db:
-    ports:
-      - "${DB_PORT}:3306"
+    # 호스트 포트 바인딩 없이 내부 전용으로 실행 (로컬 3306 충돌 방지)
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
@@ -33,13 +30,6 @@ services:
 
   redis:
     image: redis
-    networks:
-      - app-network
-
-  selenium:
-    image: seleniarm/standalone-chromium:latest
-    ports:
-      - "4444:4444"
     networks:
       - app-network
 

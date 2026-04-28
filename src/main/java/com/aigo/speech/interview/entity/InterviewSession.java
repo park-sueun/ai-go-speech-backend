@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.aigo.speech.global.entity.BaseTimeEntity;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.user.entity.User;
 
@@ -26,7 +27,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "interview_session")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class InterviewSession {
+public class InterviewSession extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -57,27 +58,23 @@ public class InterviewSession {
 
 	private LocalDateTime endedAt;
 
-	@Column(nullable = false, updatable = false)
-	private LocalDateTime createdAt;
-
-	public InterviewSession(User user, JobPosting jobPosting, boolean retry, LocalDate interviewDate) {
+	public InterviewSession (User user, JobPosting jobPosting, boolean retry, LocalDate interviewDate) {
 		this.uuid = UUID.randomUUID();
 		this.user = user;
 		this.jobPosting = jobPosting;
 		this.retry = retry;
 		this.interviewDate = interviewDate;
 		this.status = InterviewStatus.READY;
-		this.createdAt = LocalDateTime.now();
 	}
 
-	public void start() {
+	public void start () {
 		if (this.status == InterviewStatus.READY) {
 			this.status = InterviewStatus.IN_PROGRESS;
 			this.startedAt = LocalDateTime.now();
 		}
 	}
 
-	public void complete() {
+	public void complete () {
 		if (this.status == InterviewStatus.IN_PROGRESS) {
 			this.status = InterviewStatus.COMPLETED;
 			this.endedAt = LocalDateTime.now();

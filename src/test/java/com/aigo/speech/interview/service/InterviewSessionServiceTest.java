@@ -1,11 +1,9 @@
 package com.aigo.speech.interview.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,15 +22,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
-import com.aigo.speech.interview.dto.JobPostingContext;
-import com.aigo.speech.interview.entity.InterviewQuestion;
 import com.aigo.speech.interview.entity.InterviewSession;
-import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
-import com.aigo.speech.interview.repository.InterviewQuestionRepository;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.jobposting.repository.JobPostingRepository;
+import com.aigo.speech.question.entity.InterviewQuestion;
+import com.aigo.speech.question.repository.InterviewQuestionRepository;
+import com.aigo.speech.question.service.InterviewQuestionService;
 import com.aigo.speech.user.entity.User;
 import com.aigo.speech.user.repository.UserRepository;
 
@@ -44,7 +41,7 @@ class InterviewSessionServiceTest {
 	@Mock private UserRepository userRepository;
 	@Mock private JobPostingRepository jobPostingRepository;
 	@Mock private SseEmitterService sseEmitterService;
-	@Mock private InterviewQuestionGenerationService questionGenerationService;
+	@Mock private InterviewQuestionService questionGenerationService;
 
 	@InjectMocks
 	private InterviewSessionService sessionService;
@@ -55,20 +52,14 @@ class InterviewSessionServiceTest {
 
 	private User user;
 	private JobPosting jobPosting;
-	private JobPostingContext jobPostingContext;
 
 	@BeforeEach
 	void setUp() {
 		user = User.builder().email("test@example.com").build();
 		ReflectionTestUtils.setField(user, "uuid", USER_UUID);
 
-		jobPosting = new JobPosting();
+		jobPosting = JobPosting.pending(user, "https://wanted.co.kr/wd/1");
 		ReflectionTestUtils.setField(jobPosting, "uuid", JOB_POSTING_UUID);
-
-		jobPostingContext = new JobPostingContext(
-			"카카오", "백엔드 개발자",
-			List.of("서버 개발"), List.of("Java 3년"), List.of("Kotlin"), List.of("Java", "Spring")
-		);
 	}
 
 	// ======================== createSession ========================
@@ -78,46 +69,26 @@ class InterviewSessionServiceTest {
 	void createSession_withUnknownUser_throwsException() {
 		given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.empty());
 
-		CreateSessionRequest request = buildRequest(null);
-
-		assertThatThrownBy(() -> sessionService.createSession(USER_UUID.toString(), request))
+		assertThatThrownBy(() -> sessionService.createSession(USER_UUID.toString(), buildRequest(JOB_POSTING_UUID)))
 			.isInstanceOf(UserNotFoundException.class);
 
 		then(sessionRepository).should(never()).save(any());
 	}
 
 	@Test
-	@DisplayName("jobPostingUuid 없이 세션 생성 시 JobPosting 조회 없이 세션이 저장된다")
-	void createSession_withoutJobPostingUuid_savesSessionWithoutLookup() {
-		given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
-
-		InterviewSession saved = new InterviewSession(user, null, false, LocalDate.of(2026, 5, 10));
-		given(sessionRepository.save(any(InterviewSession.class))).willReturn(saved);
-
-		CreateSessionRequest request = buildRequest(null);
-
-		InterviewSessionResponse response = sessionService.createSession(USER_UUID.toString(), request);
-
-		assertThat(response.status()).isEqualTo("READY");
-		then(jobPostingRepository).should(never()).findByUuid(any());
-		then(questionGenerationService).should().generateQuestionsAsync(any(), any());
-	}
-
-	@Test
-	@DisplayName("유효한 jobPostingUuid로 세션 생성 시 JobPosting이 연결된다")
-	void createSession_withValidJobPosting_savesSessionWithJobPosting() {
+	@DisplayName("유효한 jobPostingUuid로 세션 생성 시 JobPosting이 연결되고 질문 생성이 트리거된다")
+	void createSession_withValidJobPosting_savesSessionAndTriggersQuestionGeneration() {
 		given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
 		given(jobPostingRepository.findByUuid(JOB_POSTING_UUID)).willReturn(Optional.of(jobPosting));
 
 		InterviewSession saved = new InterviewSession(user, jobPosting, false, LocalDate.of(2026, 5, 10));
+		ReflectionTestUtils.setField(saved, "id", 1L);
 		given(sessionRepository.save(any(InterviewSession.class))).willReturn(saved);
 
-		CreateSessionRequest request = buildRequest(JOB_POSTING_UUID);
-
-		InterviewSessionResponse response = sessionService.createSession(USER_UUID.toString(), request);
+		InterviewSessionResponse response = sessionService.createSession(USER_UUID.toString(), buildRequest(JOB_POSTING_UUID));
 
 		assertThat(response.status()).isEqualTo("READY");
-		then(questionGenerationService).should().generateQuestionsAsync(any(), any());
+		then(questionGenerationService).should().generateQuestionsAsync(1L);
 	}
 
 	@Test
@@ -126,9 +97,7 @@ class InterviewSessionServiceTest {
 		given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
 		given(jobPostingRepository.findByUuid(JOB_POSTING_UUID)).willReturn(Optional.empty());
 
-		CreateSessionRequest request = buildRequest(JOB_POSTING_UUID);
-
-		assertThatThrownBy(() -> sessionService.createSession(USER_UUID.toString(), request))
+		assertThatThrownBy(() -> sessionService.createSession(USER_UUID.toString(), buildRequest(JOB_POSTING_UUID)))
 			.isInstanceOf(InterviewSessionNotFoundException.class);
 
 		then(sessionRepository).should(never()).save(any());
@@ -141,7 +110,7 @@ class InterviewSessionServiceTest {
 	void getSession_withUnknownUuid_throwsException() {
 		given(sessionRepository.findByUuid(SESSION_UUID)).willReturn(Optional.empty());
 
-		assertThatThrownBy(() -> sessionService.getSession(SESSION_UUID))
+		assertThatThrownBy(() -> sessionService.getSession(USER_UUID.toString(), SESSION_UUID))
 			.isInstanceOf(InterviewSessionNotFoundException.class);
 	}
 
@@ -152,7 +121,7 @@ class InterviewSessionServiceTest {
 		given(sessionRepository.findByUuid(SESSION_UUID)).willReturn(Optional.of(session));
 		given(questionRepository.findBySessionOrderBySequenceOrderAsc(session)).willReturn(List.of());
 
-		InterviewSessionResponse response = sessionService.getSession(SESSION_UUID);
+		InterviewSessionResponse response = sessionService.getSession(USER_UUID.toString(), SESSION_UUID);
 
 		assertThat(response.status()).isEqualTo("READY");
 		assertThat(response.questions()).isNull();
@@ -168,10 +137,9 @@ class InterviewSessionServiceTest {
 		InterviewQuestion q2 = new InterviewQuestion(session, "지원 동기를 말씀해주세요.", 2);
 
 		given(sessionRepository.findByUuid(SESSION_UUID)).willReturn(Optional.of(session));
-		given(questionRepository.findBySessionOrderBySequenceOrderAsc(session))
-			.willReturn(List.of(q1, q2));
+		given(questionRepository.findBySessionOrderBySequenceOrderAsc(session)).willReturn(List.of(q1, q2));
 
-		InterviewSessionResponse response = sessionService.getSession(SESSION_UUID);
+		InterviewSessionResponse response = sessionService.getSession(USER_UUID.toString(), SESSION_UUID);
 
 		assertThat(response.status()).isEqualTo("IN_PROGRESS");
 		assertThat(response.questions()).hasSize(2);
@@ -187,7 +155,7 @@ class InterviewSessionServiceTest {
 		InterviewSession session = new InterviewSession(user, null, false, null);
 		given(sessionRepository.findByUuid(SESSION_UUID)).willReturn(Optional.of(session));
 
-		sessionService.subscribeToSession(SESSION_UUID);
+		sessionService.subscribeToSession(USER_UUID.toString(), SESSION_UUID);
 
 		then(sseEmitterService).should().register(SESSION_UUID);
 	}
@@ -197,7 +165,7 @@ class InterviewSessionServiceTest {
 	void subscribeToSession_withUnknownUuid_throwsException() {
 		given(sessionRepository.findByUuid(SESSION_UUID)).willReturn(Optional.empty());
 
-		assertThatThrownBy(() -> sessionService.subscribeToSession(SESSION_UUID))
+		assertThatThrownBy(() -> sessionService.subscribeToSession(USER_UUID.toString(), SESSION_UUID))
 			.isInstanceOf(InterviewSessionNotFoundException.class);
 	}
 
@@ -208,7 +176,6 @@ class InterviewSessionServiceTest {
 		ReflectionTestUtils.setField(request, "jobPostingUuid", jobPostingUuid);
 		ReflectionTestUtils.setField(request, "retry", false);
 		ReflectionTestUtils.setField(request, "interviewDate", LocalDate.of(2026, 5, 10));
-		ReflectionTestUtils.setField(request, "jobPostingContext", jobPostingContext);
 		return request;
 	}
 }

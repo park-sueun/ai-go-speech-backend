@@ -1,4 +1,4 @@
-package com.aigo.speech.interview.service;
+package com.aigo.speech.answer.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,19 +19,21 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.aigo.speech.interview.dto.SubmitAnswerRequest;
-import com.aigo.speech.interview.dto.SubmitAnswerResponse;
-import com.aigo.speech.interview.entity.AnswerScore;
-import com.aigo.speech.interview.entity.InterviewAnswer;
-import com.aigo.speech.interview.entity.InterviewQuestion;
+import com.aigo.speech.answer.dto.SubmitAnswerRequest;
+import com.aigo.speech.answer.dto.SubmitAnswerResponse;
+import com.aigo.speech.answer.entity.AnswerScore;
+import com.aigo.speech.answer.entity.InterviewAnswer;
+import com.aigo.speech.answer.repository.AnswerScoreRepository;
+import com.aigo.speech.answer.repository.InterviewAnswerRepository;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
-import com.aigo.speech.interview.exception.QuestionNotFoundException;
-import com.aigo.speech.interview.repository.AnswerScoreRepository;
-import com.aigo.speech.interview.repository.InterviewAnswerRepository;
-import com.aigo.speech.interview.repository.InterviewQuestionRepository;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
+import com.aigo.speech.interview.service.InterviewSessionService;
+import com.aigo.speech.interview.service.SseEmitterService;
+import com.aigo.speech.question.entity.InterviewQuestion;
+import com.aigo.speech.question.exception.QuestionNotFoundException;
+import com.aigo.speech.question.repository.InterviewQuestionRepository;
 import com.aigo.speech.user.entity.User;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +49,7 @@ class InterviewAnswerServiceTest {
 	@InjectMocks
 	private InterviewAnswerService answerService;
 
+	private static final String USER_UUID_STR = UUID.randomUUID().toString();
 	private static final UUID SESSION_UUID = UUID.randomUUID();
 	private static final UUID QUESTION_UUID = UUID.randomUUID();
 
@@ -72,8 +75,7 @@ class InterviewAnswerServiceTest {
 	@DisplayName("정상 답변 제출 시 답변과 점수 데이터가 저장된다")
 	void submitAnswer_savesAnswerAndScore() {
 		InterviewAnswer savedAnswer = new InterviewAnswer(
-			question, "https://storage.com/audio.wav", "안녕하세요", 90,
-			null, null, null
+			question, "https://storage.com/audio.wav", "안녕하세요", 90, null, null, null
 		);
 		given(sessionService.findByUuid(SESSION_UUID)).willReturn(session);
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.of(question));
@@ -82,7 +84,7 @@ class InterviewAnswerServiceTest {
 		given(questionRepository.countBySession(session)).willReturn(5L);
 		given(answerRepository.countBySession(session)).willReturn(1L);
 
-		SubmitAnswerResponse response = answerService.submitAnswer(SESSION_UUID, QUESTION_UUID, buildRequest());
+		SubmitAnswerResponse response = answerService.submitAnswer(USER_UUID_STR, SESSION_UUID, QUESTION_UUID, buildRequest());
 
 		assertThat(response.sessionCompleted()).isFalse();
 		then(answerRepository).should().save(any(InterviewAnswer.class));
@@ -93,8 +95,7 @@ class InterviewAnswerServiceTest {
 	@DisplayName("마지막 답변 제출 시 세션이 COMPLETED로 전환되고 SSE 이벤트가 전송된다")
 	void submitAnswer_whenLastAnswer_completesSessionAndSendsSSE() {
 		InterviewAnswer savedAnswer = new InterviewAnswer(
-			question, "https://storage.com/audio.wav", null, null,
-			null, null, null
+			question, "https://storage.com/audio.wav", null, null, null, null, null
 		);
 		given(sessionService.findByUuid(SESSION_UUID)).willReturn(session);
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.of(question));
@@ -104,7 +105,7 @@ class InterviewAnswerServiceTest {
 		given(answerRepository.countBySession(session)).willReturn(5L);
 		given(sessionRepository.save(any(InterviewSession.class))).willReturn(session);
 
-		SubmitAnswerResponse response = answerService.submitAnswer(SESSION_UUID, QUESTION_UUID, buildRequest());
+		SubmitAnswerResponse response = answerService.submitAnswer(USER_UUID_STR, SESSION_UUID, QUESTION_UUID, buildRequest());
 
 		assertThat(response.sessionCompleted()).isTrue();
 		assertThat(session.getStatus()).isEqualTo(InterviewStatus.COMPLETED);
@@ -121,7 +122,7 @@ class InterviewAnswerServiceTest {
 		ReflectionTestUtils.setField(readySession, "uuid", SESSION_UUID);
 		given(sessionService.findByUuid(SESSION_UUID)).willReturn(readySession);
 
-		assertThatThrownBy(() -> answerService.submitAnswer(SESSION_UUID, QUESTION_UUID, buildRequest()))
+		assertThatThrownBy(() -> answerService.submitAnswer(USER_UUID_STR, SESSION_UUID, QUESTION_UUID, buildRequest()))
 			.isInstanceOf(InvalidSessionStatusException.class)
 			.hasMessage("진행 중인 면접 세션이 아닙니다.");
 
@@ -134,7 +135,7 @@ class InterviewAnswerServiceTest {
 		session.complete();
 		given(sessionService.findByUuid(SESSION_UUID)).willReturn(session);
 
-		assertThatThrownBy(() -> answerService.submitAnswer(SESSION_UUID, QUESTION_UUID, buildRequest()))
+		assertThatThrownBy(() -> answerService.submitAnswer(USER_UUID_STR, SESSION_UUID, QUESTION_UUID, buildRequest()))
 			.isInstanceOf(InvalidSessionStatusException.class);
 
 		then(answerRepository).should(never()).save(any());
@@ -146,7 +147,7 @@ class InterviewAnswerServiceTest {
 		given(sessionService.findByUuid(SESSION_UUID)).willReturn(session);
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.empty());
 
-		assertThatThrownBy(() -> answerService.submitAnswer(SESSION_UUID, QUESTION_UUID, buildRequest()))
+		assertThatThrownBy(() -> answerService.submitAnswer(USER_UUID_STR, SESSION_UUID, QUESTION_UUID, buildRequest()))
 			.isInstanceOf(QuestionNotFoundException.class)
 			.hasMessage("질문을 찾을 수 없습니다.");
 
@@ -166,7 +167,7 @@ class InterviewAnswerServiceTest {
 		given(sessionService.findByUuid(SESSION_UUID)).willReturn(session);
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.of(otherQuestion));
 
-		assertThatThrownBy(() -> answerService.submitAnswer(SESSION_UUID, QUESTION_UUID, buildRequest()))
+		assertThatThrownBy(() -> answerService.submitAnswer(USER_UUID_STR, SESSION_UUID, QUESTION_UUID, buildRequest()))
 			.isInstanceOf(QuestionNotFoundException.class)
 			.hasMessage("해당 세션의 질문이 아닙니다.");
 	}

@@ -1,38 +1,60 @@
 services:
-  app:
+  nginx:
+    container_name: nginx-dev
+    image: nginx:stable
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+
+  app-blue:
+    container_name: app-blue
     build:
       context: .
       dockerfile: Dockerfile.dev
+    image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
     ports:
-      - "8080:8080"
-      - "5005:5005"      # 원격 디버그 포트
+      - "8081:8080"
+      - "5005:5005"   # 원격 디버그 포트
     environment:
       JAVA_OPTS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-    env_file:
-      - .env.dev
+    env_file: .env.dev
+    networks:
+      - app-network
     volumes:
-      - ./logs:/app/logs
+      - ./logs/blue:/app/logs
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_started
 
-  db:
-    # 호스트 포트 바인딩 없이 내부 전용으로 실행 (로컬 3306 충돌 방지)
+  app-green:
+    container_name: app-green
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
+    ports:
+      - "8082:8080"
+      - "5006:5005"   # 원격 디버그용 포트
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-    env_file:
-      - .env.dev
+      JAVA_OPTS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    env_file: .env.dev
+    networks:
+      - app-network
     volumes:
-      - dev_db_data:/var/lib/mysql
+      - ./logs/green:/app/logs
+    depends_on:
+      redis:
+        condition: service_started
 
   redis:
     image: redis
     networks:
       - app-network
 
-volumes:
-  dev_db_data:
-    driver: local
+networks:
+  app-network:
+    driver: bridge

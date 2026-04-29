@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,6 +16,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 import com.aigo.speech.auth.jwt.JwtAuthenticationFilter;
 import com.aigo.speech.auth.jwt.JwtTokenProvider;
@@ -76,7 +79,15 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.PATCH, "/api/auth/password").authenticated()
 				.anyRequest().authenticated()
 			)
+			.exceptionHandling(ex -> ex
+				.authenticationEntryPoint((request, response, authException) -> {
+					response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+					response.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
+					response.getWriter().write("{\"message\":\"인증이 필요합니다.\"}");
+				})
+			)
 			.oauth2Login(oauth -> oauth
+				.loginPage("/login")
 				.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
 				.successHandler(oAuth2SuccessHandler)
 			)

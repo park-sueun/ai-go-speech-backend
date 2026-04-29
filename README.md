@@ -6,11 +6,11 @@
 
 ## 실행 환경
 
-| 환경      | 설명                           | 브랜치       |
-|---------|------------------------------|-----------|
-| `local` | 로컬 개발 (DB만 Docker, 앱은 직접 실행) | `develop` |
-| `dev`   | 개발 서버 (앱 + DB 전체 Docker)     | `develop` |
-| `prod`  | 운영 서버 (앱 + DB 전체 Docker)     | `master`  |
+| 환경      | 설명                       | 브랜치       |
+|---------|--------------------------|-----------|
+| `local` | 로컬 개발 (앱 + DB 전체 Docker) | `develop` |
+| `dev`   | 개발 서버 (앱 + DB 전체 Docker) | `develop` |
+| `prod`  | 운영 서버 (앱 + DB 전체 Docker) | `master`  |
 
 ---
 
@@ -25,17 +25,16 @@ cp .env.example .env.local
 # .env.dev 파일을 열어 DB 접속 정보 입력
 ```
 
-**2. DB 컨테이너 실행**
+**2. 전체 실행**
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.local up -d db
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env.dev up -d --build
 ```
 
-**3. 앱 실행**
+**3. 로그 확인**
 
 ```bash
-export $(grep -v '^#' .env.local | xargs)
-./gradlew bootRun --args='--spring.profiles.active=local'
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env.dev logs -f app
 ```
 
 ---

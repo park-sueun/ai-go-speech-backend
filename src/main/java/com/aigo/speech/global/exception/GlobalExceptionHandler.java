@@ -6,6 +6,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
+import com.aigo.speech.interview.exception.InvalidSessionStatusException;
+import com.aigo.speech.question.exception.QuestionNotFoundException;
 import com.aigo.speech.auth.exception.DuplicateEmailException;
 import com.aigo.speech.auth.exception.DuplicateNicknameException;
 import com.aigo.speech.auth.exception.InvalidCredentialsException;
@@ -26,6 +29,21 @@ import com.aigo.speech.mail.exception.MailVerificationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	@ExceptionHandler(InterviewSessionNotFoundException.class)
+	public ResponseEntity<ApiResponse<?>> handleInterviewSessionNotFound(InterviewSessionNotFoundException e) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(InvalidSessionStatusException.class)
+	public ResponseEntity<ApiResponse<?>> handleInvalidSessionStatus(InvalidSessionStatusException e) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(QuestionNotFoundException.class)
+	public ResponseEntity<ApiResponse<?>> handleQuestionNotFound(QuestionNotFoundException e) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
+	}
 
 	@ExceptionHandler(MailVerificationException.class)
 	public ResponseEntity<ApiResponse<?>> handleVerificationException (
@@ -59,7 +77,7 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<?>> handleMailSendException (MailSendException e) {
 		return ResponseEntity.internalServerError().body(ApiResponse.fail(e.getMessage()));
 	}
-	
+
 	@ExceptionHandler(DuplicateEmailException.class)
 	public ResponseEntity<ApiResponse<?>> handleDuplicateEmail (DuplicateEmailException e) {
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(e.getMessage()));

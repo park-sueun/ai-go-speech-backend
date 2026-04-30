@@ -12,6 +12,7 @@ import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
+import com.aigo.speech.question.dto.InterviewQuestionResponse;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.jobposting.repository.JobPostingRepository;
@@ -70,6 +71,22 @@ public class InterviewSessionService {
 		return sessionRepository.findByUserOrderByCreatedAtDesc(user)
 			.stream()
 			.map(s -> InterviewSessionResponse.from(s, null))
+			.toList();
+	}
+
+	public List<InterviewQuestionResponse> getQuestions (String userUuidStr, UUID sessionUuid, Integer sequenceOrder) {
+		InterviewSession session = findByUuid(sessionUuid);
+		validateOwnership(session, userUuidStr);
+
+		if (sequenceOrder != null) {
+			InterviewQuestion question = questionRepository.findBySessionAndSequenceOrder(session, sequenceOrder)
+				.orElseThrow(() -> new InterviewSessionNotFoundException("해당 순서의 질문을 찾을 수 없습니다."));
+			return List.of(InterviewQuestionResponse.from(question));
+		}
+
+		return questionRepository.findBySessionOrderBySequenceOrderAsc(session)
+			.stream()
+			.map(InterviewQuestionResponse::from)
 			.toList();
 	}
 

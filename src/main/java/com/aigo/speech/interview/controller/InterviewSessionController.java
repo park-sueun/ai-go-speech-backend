@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -19,6 +20,7 @@ import com.aigo.speech.global.dto.ApiResponse;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
 import com.aigo.speech.interview.service.InterviewSessionService;
+import com.aigo.speech.question.dto.InterviewQuestionResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +55,16 @@ public class InterviewSessionController {
 		@PathVariable UUID uuid
 	) {
 		return sessionService.subscribeToSession(userUuid, uuid);
+	}
+
+	@GetMapping("/{uuid}/questions")
+	public ResponseEntity<ApiResponse<List<InterviewQuestionResponse>>> getQuestions(
+		@AuthenticationPrincipal String userUuid,
+		@PathVariable UUID uuid,
+		@RequestParam(required = false) Integer sequenceOrder
+	) {
+		List<InterviewQuestionResponse> response = sessionService.getQuestions(userUuid, uuid, sequenceOrder);
+		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
 	@GetMapping("/{uuid}")

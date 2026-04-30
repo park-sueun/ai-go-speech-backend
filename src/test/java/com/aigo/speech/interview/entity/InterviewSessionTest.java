@@ -43,15 +43,12 @@ class InterviewSessionTest {
 	}
 
 	@Test
-	@DisplayName("READY가 아닌 상태에서 start() 호출 시 상태가 변경되지 않는다")
-	void start_whenNotReady_doesNothing () {
-		session.start();
-		LocalDateTime firstStartedAt = session.getStartedAt();
-
+	@DisplayName("READY가 아닌 상태에서 start() 호출 시 예외가 발생한다")
+	void start_whenNotReady_throwsException () {
 		session.start();
 
-		assertThat(session.getStatus()).isEqualTo(InterviewStatus.IN_PROGRESS);
-		assertThat(session.getStartedAt()).isEqualTo(firstStartedAt);
+		assertThatThrownBy(() -> session.start())
+			.isInstanceOf(com.aigo.speech.interview.exception.InvalidSessionStatusException.class);
 	}
 
 	@Test
@@ -67,12 +64,10 @@ class InterviewSessionTest {
 	}
 
 	@Test
-	@DisplayName("IN_PROGRESS가 아닌 상태에서 complete() 호출 시 상태가 변경되지 않는다")
-	void complete_whenNotInProgress_doesNothing () {
-		session.complete();
-
-		assertThat(session.getStatus()).isEqualTo(InterviewStatus.READY);
-		assertThat(session.getEndedAt()).isNull();
+	@DisplayName("IN_PROGRESS가 아닌 상태에서 complete() 호출 시 예외가 발생한다")
+	void complete_whenNotInProgress_throwsException () {
+		assertThatThrownBy(() -> session.complete())
+			.isInstanceOf(com.aigo.speech.interview.exception.InvalidSessionStatusException.class);
 	}
 
 	@Test

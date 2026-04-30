@@ -67,6 +67,15 @@ public class InterviewSessionController {
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
+	@PatchMapping("/{uuid}/complete")
+	public ResponseEntity<ApiResponse<InterviewSessionResponse>> completeSession(
+		@AuthenticationPrincipal String userUuid,
+		@PathVariable UUID uuid
+	) {
+		InterviewSessionResponse response = sessionService.completeSession(userUuid, uuid);
+		return ResponseEntity.ok(ApiResponse.success(response));
+	}
+
 	@GetMapping("/{uuid}/questions")
 	public ResponseEntity<ApiResponse<List<InterviewQuestionResponse>>> getQuestions(
 		@AuthenticationPrincipal String userUuid,

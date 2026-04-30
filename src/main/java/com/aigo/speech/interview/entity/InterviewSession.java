@@ -81,9 +81,10 @@ public class InterviewSession extends BaseTimeEntity {
 	}
 
 	public void complete () {
-		if (this.status == InterviewStatus.IN_PROGRESS) {
-			this.status = InterviewStatus.COMPLETED;
-			this.endedAt = LocalDateTime.now();
+		if (this.status != InterviewStatus.IN_PROGRESS) {
+			throw new InvalidSessionStatusException("진행 중인 면접 세션만 완료할 수 있습니다.");
 		}
+		this.status = InterviewStatus.COMPLETED;
+		this.endedAt = LocalDateTime.now();
 	}
 }

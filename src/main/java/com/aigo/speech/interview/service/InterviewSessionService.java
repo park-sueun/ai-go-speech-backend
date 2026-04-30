@@ -9,15 +9,17 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.aigo.speech.global.sse.SseEmitterService;
 
+import com.aigo.speech.answer.repository.InterviewAnswerRepository;
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
-import com.aigo.speech.question.dto.InterviewQuestionResponse;
+import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.jobposting.repository.JobPostingRepository;
+import com.aigo.speech.question.dto.InterviewQuestionResponse;
 import com.aigo.speech.question.entity.InterviewQuestion;
 import com.aigo.speech.question.repository.InterviewQuestionRepository;
 import com.aigo.speech.question.service.InterviewQuestionService;
@@ -35,6 +37,7 @@ public class InterviewSessionService {
 
 	private final InterviewSessionRepository sessionRepository;
 	private final InterviewQuestionRepository questionRepository;
+	private final InterviewAnswerRepository answerRepository;
 	private final UserRepository userRepository;
 	private final JobPostingRepository jobPostingRepository;
 	private final SseEmitterService sseEmitterService;
@@ -82,6 +85,22 @@ public class InterviewSessionService {
 		InterviewSession session = findByUuid(sessionUuid);
 		validateOwnership(session, userUuidStr);
 		session.start();
+		return InterviewSessionResponse.from(session, null);
+	}
+
+	@Transactional
+	public InterviewSessionResponse completeSession(String userUuidStr, UUID sessionUuid) {
+		InterviewSession session = findByUuid(sessionUuid);
+		validateOwnership(session, userUuidStr);
+
+		long totalQuestions = questionRepository.countBySession(session);
+		long totalAnswers = answerRepository.countBySession(session);
+
+		if (totalAnswers < totalQuestions) {
+			throw new InvalidSessionStatusException("모든 질문에 답변한 후 세션을 완료할 수 있습니다.");
+		}
+
+		session.complete();
 		return InterviewSessionResponse.from(session, null);
 	}
 

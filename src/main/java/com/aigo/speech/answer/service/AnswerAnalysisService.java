@@ -22,7 +22,7 @@ public class AnswerAnalysisService {
 	private final InterviewSessionRepository sessionRepository;
 	private final SseEmitterService sseEmitterService;
 
-	@Async("interviewExecutor")
+	@Async("answerExecutor")
 	@Transactional(readOnly = true)
 	public void analyzeSessionAsync (Long sessionId) {
 		InterviewSession session = sessionRepository.findById(sessionId)

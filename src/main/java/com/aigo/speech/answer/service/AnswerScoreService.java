@@ -20,7 +20,7 @@ public class AnswerScoreService {
 	private final InterviewAnswerRepository answerRepository;
 	private final AnswerScoreRepository answerScoreRepository;
 
-	@Async("interviewExecutor")
+	@Async("answerExecutor")
 	@Transactional
 	public void saveScoreAsync(Long answerId, Integer silenceCount,
 		Integer totalSilenceDuration, Integer answerDuration) {

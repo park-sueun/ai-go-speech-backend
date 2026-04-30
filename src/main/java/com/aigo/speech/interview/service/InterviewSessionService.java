@@ -116,6 +116,14 @@ public class InterviewSessionService {
 		return InterviewSessionResponse.from(session, null);
 	}
 
+	@Transactional
+	public InterviewSessionResponse abandonSession (String userUuidStr, UUID sessionUuid) {
+		InterviewSession session = findByUuid(sessionUuid);
+		validateOwnership(session, userUuidStr);
+		session.abandon();
+		return InterviewSessionResponse.from(session, null);
+	}
+
 	public List<InterviewQuestionResponse> getQuestions (String userUuidStr, UUID sessionUuid, Integer sequenceOrder) {
 		InterviewSession session = findByUuid(sessionUuid);
 		validateOwnership(session, userUuidStr);

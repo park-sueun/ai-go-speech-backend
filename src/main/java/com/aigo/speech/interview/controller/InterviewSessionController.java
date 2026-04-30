@@ -67,6 +67,15 @@ public class InterviewSessionController {
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
+	@PatchMapping("/{uuid}/abandon")
+	public ResponseEntity<ApiResponse<InterviewSessionResponse>> abandonSession(
+		@AuthenticationPrincipal String userUuid,
+		@PathVariable UUID uuid
+	) {
+		InterviewSessionResponse response = sessionService.abandonSession(userUuid, uuid);
+		return ResponseEntity.ok(ApiResponse.success(response));
+	}
+
 	@PatchMapping("/{uuid}/complete")
 	public ResponseEntity<ApiResponse<InterviewSessionResponse>> completeSession(
 		@AuthenticationPrincipal String userUuid,

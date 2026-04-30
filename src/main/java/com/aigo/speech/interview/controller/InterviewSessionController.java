@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -55,6 +56,15 @@ public class InterviewSessionController {
 		@PathVariable UUID uuid
 	) {
 		return sessionService.subscribeToSession(userUuid, uuid);
+	}
+
+	@PatchMapping("/{uuid}/start")
+	public ResponseEntity<ApiResponse<InterviewSessionResponse>> startSession(
+		@AuthenticationPrincipal String userUuid,
+		@PathVariable UUID uuid
+	) {
+		InterviewSessionResponse response = sessionService.startSession(userUuid, uuid);
+		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
 	@GetMapping("/{uuid}/questions")

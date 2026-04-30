@@ -53,9 +53,6 @@ public class InterviewQuestionService {
 				questionRepository.save(new InterviewQuestion(session, questions.get(i), i + 1));
 			}
 
-			session.start();
-			sessionRepository.save(session);
-
 			log.info("[Question] 질문 생성 완료. sessionId={}, count={}", sessionId, questions.size());
 
 			int questionCount = questions.size();

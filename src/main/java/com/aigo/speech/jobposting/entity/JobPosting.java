@@ -1,5 +1,6 @@
 package com.aigo.speech.jobposting.entity;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -82,14 +83,17 @@ public class JobPosting extends BaseTimeEntity {
 	@Column(columnDefinition = "TEXT")
 	private String failureReason;
 
+	@Column(name = "interview_date")
+	private LocalDate interviewDate;
+
 	@PrePersist
-	protected void prePersist() {
+	protected void prePersist () {
 		if (this.uuid == null) {
 			this.uuid = UUID.randomUUID();
 		}
 	}
 
-	public static JobPosting pending(User user, String url) {
+	public static JobPosting pending (User user, String url) {
 		JobPosting jp = new JobPosting();
 		jp.user = user;
 		jp.url = url;
@@ -97,11 +101,11 @@ public class JobPosting extends BaseTimeEntity {
 		return jp;
 	}
 
-	public void markAnalyzing() {
+	public void markAnalyzing () {
 		this.status = JobPostingStatus.ANALYZING;
 	}
 
-	public void markDone(JobPostingAnalyzeResponse result) {
+	public void markDone (JobPostingAnalyzeResponse result) {
 		this.status = JobPostingStatus.DONE;
 		this.companyName = result.companyName();
 		this.companyDescription = result.companyDescription();
@@ -112,7 +116,7 @@ public class JobPosting extends BaseTimeEntity {
 		this.requiredExperience = result.requiredExperience();
 	}
 
-	public void markFailed(String reason) {
+	public void markFailed (String reason) {
 		this.status = JobPostingStatus.FAILED;
 		this.failureReason = reason;
 	}

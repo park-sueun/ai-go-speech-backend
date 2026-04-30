@@ -53,6 +53,7 @@ public class InterviewSessionService {
 
 		log.info("[Interview] Session created. uuid={}", session.getUuid());
 
+		/* AI 면접 질문 생성 (비동기) */
 		questionService.generateQuestionsAsync(session.getId());
 
 		return InterviewSessionResponse.from(session, null);

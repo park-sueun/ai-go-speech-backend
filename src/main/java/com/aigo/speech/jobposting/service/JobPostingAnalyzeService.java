@@ -2,18 +2,21 @@ package com.aigo.speech.jobposting.service;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.aigo.speech.jobposting.crawler.CrawlerFactory;
 import com.aigo.speech.jobposting.dto.JobPostingDetailResponse;
 import com.aigo.speech.jobposting.dto.JobPostingSummaryResponse;
 import com.aigo.speech.jobposting.dto.JobPostingSubmitResponse;
 import com.aigo.speech.jobposting.entity.JobPosting;
+import com.aigo.speech.jobposting.entity.JobPostingStatus;
 import com.aigo.speech.jobposting.exception.InvalidUrlException;
 import com.aigo.speech.jobposting.exception.JobPostingNotFoundException;
 import com.aigo.speech.jobposting.repository.JobPostingRepository;
@@ -32,6 +35,7 @@ public class JobPostingAnalyzeService {
 	private final UserRepository userRepository;
 	private final CrawlerFactory crawlerFactory;
 	private final ApplicationEventPublisher eventPublisher;
+	private final JobPostingSseEmitterService sseEmitterService;
 
 	/**
 	 * URL 제출 → 즉시 uuid 반환. 동일 URL 중복 시 기존 결과 반환. 신규 시 PENDING 저장 후 비동기 분석 트리거.
@@ -56,6 +60,31 @@ public class JobPostingAnalyzeService {
 		eventPublisher.publishEvent(new JobPostingSubmittedEvent(jobPosting.getId()));
 
 		return JobPostingSubmitResponse.from(jobPosting);
+	}
+
+	@Transactional(readOnly = true)
+	public SseEmitter subscribeToAnalysis(UUID uuid, UUID userUuid) {
+		User user = findUser(userUuid);
+		JobPosting jp = jobPostingRepository.findByUuidAndUser(uuid, user)
+			.orElseThrow(() -> new JobPostingNotFoundException("채용공고를 찾을 수 없습니다."));
+
+		// race condition: 이미 완료/실패된 경우 즉시 이벤트 전송
+		if (jp.getStatus() == JobPostingStatus.DONE) {
+			SseEmitter emitter = sseEmitterService.register(uuid);
+			sseEmitterService.sendEvent(uuid, "JOB_POSTING_ANALYSIS_DONE",
+				Map.of("jobPostingUuid", uuid.toString()));
+			sseEmitterService.complete(uuid);
+			return emitter;
+		}
+		if (jp.getStatus() == JobPostingStatus.FAILED) {
+			SseEmitter emitter = sseEmitterService.register(uuid);
+			sseEmitterService.sendEvent(uuid, "ERROR",
+				Map.of("message", "채용공고 분석에 실패했습니다."));
+			sseEmitterService.complete(uuid);
+			return emitter;
+		}
+
+		return sseEmitterService.register(uuid);
 	}
 
 	@Transactional(readOnly = true)

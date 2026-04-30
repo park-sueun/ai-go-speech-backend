@@ -12,6 +12,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.jobposting.crawler.CrawlerFactory;
 import com.aigo.speech.jobposting.dto.JobPostingAnalyzeResponse;
 import com.aigo.speech.jobposting.entity.JobPosting;
@@ -30,7 +31,7 @@ public class JobPostingAnalysisProcessor {
 	private final JobPostingRepository jobPostingRepository;
 	private final CrawlerFactory crawlerFactory;
 	private final JobPostingParser jobPostingParser;
-	private final JobPostingSseEmitterService sseEmitterService;
+	private final SseEmitterService sseEmitterService;
 
 	/**
 	 * submit() 트랜잭션이 커밋된 후 실행 → entity가 DB에 확정된 상태에서 크롤링 시작.

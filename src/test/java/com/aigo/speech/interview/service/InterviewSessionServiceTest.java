@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.aigo.speech.auth.exception.UserNotFoundException;
+import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
 import com.aigo.speech.interview.entity.InterviewSession;

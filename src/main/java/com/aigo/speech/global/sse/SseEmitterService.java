@@ -1,4 +1,4 @@
-package com.aigo.speech.interview.service;
+package com.aigo.speech.global.sse;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -18,27 +18,27 @@ public class SseEmitterService {
 
 	private final ConcurrentHashMap<UUID, SseEmitter> emitters = new ConcurrentHashMap<>();
 
-	public SseEmitter register(UUID sessionUuid) {
+	public SseEmitter register(UUID uuid) {
 		SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT_MS);
 
 		emitter.onTimeout(() -> {
-			log.warn("[SSE] Timeout. sessionUuid={}", sessionUuid);
-			emitters.remove(sessionUuid);
+			log.warn("[SSE] Timeout. uuid={}", uuid);
+			emitters.remove(uuid);
 		});
 		emitter.onError(e -> {
-			log.warn("[SSE] Error. sessionUuid={}, message={}", sessionUuid, e.getMessage());
-			emitters.remove(sessionUuid);
+			log.warn("[SSE] Error. uuid={}, message={}", uuid, e.getMessage());
+			emitters.remove(uuid);
 		});
-		emitter.onCompletion(() -> emitters.remove(sessionUuid));
+		emitter.onCompletion(() -> emitters.remove(uuid));
 
-		emitters.put(sessionUuid, emitter);
+		emitters.put(uuid, emitter);
 		return emitter;
 	}
 
-	public void sendEvent(UUID sessionUuid, String eventType, Object data) {
-		SseEmitter emitter = emitters.get(sessionUuid);
+	public void sendEvent(UUID uuid, String eventType, Object data) {
+		SseEmitter emitter = emitters.get(uuid);
 		if (emitter == null) {
-			log.warn("[SSE] Emitter not found. sessionUuid={}", sessionUuid);
+			log.warn("[SSE] Emitter not found. uuid={}", uuid);
 			return;
 		}
 		try {
@@ -48,16 +48,16 @@ public class SseEmitterService {
 					.data(data, MediaType.APPLICATION_JSON)
 			);
 		} catch (IOException e) {
-			log.warn("[SSE] Send failed. sessionUuid={}, message={}", sessionUuid, e.getMessage());
-			emitters.remove(sessionUuid);
+			log.warn("[SSE] Send failed. uuid={}, message={}", uuid, e.getMessage());
+			emitters.remove(uuid);
 		}
 	}
 
-	public void complete(UUID sessionUuid) {
-		SseEmitter emitter = emitters.get(sessionUuid);
+	public void complete(UUID uuid) {
+		SseEmitter emitter = emitters.get(uuid);
 		if (emitter != null) {
 			emitter.complete();
-			emitters.remove(sessionUuid);
+			emitters.remove(uuid);
 		}
 	}
 }

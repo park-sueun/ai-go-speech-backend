@@ -25,7 +25,7 @@ import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
 import com.aigo.speech.interview.service.InterviewSessionService;
-import com.aigo.speech.interview.service.SseEmitterService;
+import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.question.dto.SubmitAnswerRequest;
 import com.aigo.speech.question.dto.SubmitAnswerResponse;
 import com.aigo.speech.question.entity.InterviewQuestion;

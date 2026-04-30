@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.jobposting.crawler.CrawlerFactory;
 import com.aigo.speech.jobposting.dto.JobPostingDetailResponse;
 import com.aigo.speech.jobposting.dto.JobPostingSummaryResponse;
@@ -35,7 +36,7 @@ public class JobPostingAnalyzeService {
 	private final UserRepository userRepository;
 	private final CrawlerFactory crawlerFactory;
 	private final ApplicationEventPublisher eventPublisher;
-	private final JobPostingSseEmitterService sseEmitterService;
+	private final SseEmitterService sseEmitterService;
 
 	/**
 	 * URL 제출 → 즉시 uuid 반환. 동일 URL 중복 시 기존 결과 반환. 신규 시 PENDING 저장 후 비동기 분석 트리거.

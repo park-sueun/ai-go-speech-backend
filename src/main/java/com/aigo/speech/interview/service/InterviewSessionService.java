@@ -5,12 +5,14 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.aigo.speech.global.sse.SseEmitterService;
-
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
+import com.aigo.speech.answer.service.AnswerAnalysisService;
 import com.aigo.speech.auth.exception.UserNotFoundException;
+import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
 import com.aigo.speech.interview.entity.InterviewSession;
@@ -42,6 +44,7 @@ public class InterviewSessionService {
 	private final JobPostingRepository jobPostingRepository;
 	private final SseEmitterService sseEmitterService;
 	private final InterviewQuestionService questionService;
+	private final AnswerAnalysisService sessionAnalysisService;
 
 	@Transactional
 	public InterviewSessionResponse createSession (String userUuidStr, CreateSessionRequest request) {
@@ -89,7 +92,7 @@ public class InterviewSessionService {
 	}
 
 	@Transactional
-	public InterviewSessionResponse completeSession(String userUuidStr, UUID sessionUuid) {
+	public InterviewSessionResponse completeSession (String userUuidStr, UUID sessionUuid) {
 		InterviewSession session = findByUuid(sessionUuid);
 		validateOwnership(session, userUuidStr);
 
@@ -101,6 +104,15 @@ public class InterviewSessionService {
 		}
 
 		session.complete();
+
+		Long sessionId = session.getId();
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit () {
+				sessionAnalysisService.analyzeSessionAsync(sessionId);
+			}
+		});
+
 		return InterviewSessionResponse.from(session, null);
 	}
 

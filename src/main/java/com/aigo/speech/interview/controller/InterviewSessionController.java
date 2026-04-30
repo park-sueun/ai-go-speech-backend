@@ -1,5 +1,6 @@
 package com.aigo.speech.interview.controller;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,14 @@ import lombok.RequiredArgsConstructor;
 public class InterviewSessionController {
 
 	private final InterviewSessionService sessionService;
+
+	@GetMapping
+	public ResponseEntity<ApiResponse<List<InterviewSessionResponse>>> getSessions(
+		@AuthenticationPrincipal String userUuid
+	) {
+		List<InterviewSessionResponse> response = sessionService.getSessions(userUuid);
+		return ResponseEntity.ok(ApiResponse.success(response));
+	}
 
 	@PostMapping
 	public ResponseEntity<ApiResponse<InterviewSessionResponse>> createSession(

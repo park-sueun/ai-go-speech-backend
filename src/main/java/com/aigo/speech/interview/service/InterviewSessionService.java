@@ -15,7 +15,7 @@ import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.jobposting.repository.JobPostingRepository;
-import com.aigo.speech.question.dto.InterviewQuestionResponse;
+import com.aigo.speech.question.entity.InterviewQuestion;
 import com.aigo.speech.question.repository.InterviewQuestionRepository;
 import com.aigo.speech.question.service.InterviewQuestionService;
 import com.aigo.speech.user.entity.User;
@@ -38,7 +38,7 @@ public class InterviewSessionService {
 	private final InterviewQuestionService questionService;
 
 	@Transactional
-	public InterviewSessionResponse createSession(String userUuidStr, CreateSessionRequest request) {
+	public InterviewSessionResponse createSession (String userUuidStr, CreateSessionRequest request) {
 		User user = userRepository.findByUuid(UUID.fromString(userUuidStr))
 			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
 
@@ -54,48 +54,43 @@ public class InterviewSessionService {
 
 		questionService.generateQuestionsAsync(session.getId());
 
-		return toResponse(session, null);
+		return InterviewSessionResponse.from(session, null);
 	}
 
-	public SseEmitter subscribeToSession(String userUuidStr, UUID sessionUuid) {
+	public SseEmitter subscribeToSession (String userUuidStr, UUID sessionUuid) {
 		InterviewSession session = findByUuid(sessionUuid);
 		validateOwnership(session, userUuidStr);
 		return sseEmitterService.register(sessionUuid);
 	}
 
-	public InterviewSessionResponse getSession(String userUuidStr, UUID sessionUuid) {
+	public List<InterviewSessionResponse> getSessions (String userUuidStr) {
+		User user = userRepository.findByUuid(UUID.fromString(userUuidStr))
+			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
+
+		return sessionRepository.findByUserOrderByCreatedAtDesc(user)
+			.stream()
+			.map(s -> InterviewSessionResponse.from(s, null))
+			.toList();
+	}
+
+	public InterviewSessionResponse getSession (String userUuidStr, UUID sessionUuid) {
 		InterviewSession session = findByUuid(sessionUuid);
 		validateOwnership(session, userUuidStr);
 
-		List<InterviewQuestionResponse> questions = questionRepository
-			.findBySessionOrderBySequenceOrderAsc(session)
-			.stream()
-			.map(q -> new InterviewQuestionResponse(q.getUuid(), q.getSequenceOrder(), q.getContent()))
-			.toList();
+		List<InterviewQuestion> questions = questionRepository
+			.findBySessionOrderBySequenceOrderAsc(session);
 
-		return toResponse(session, questions.isEmpty() ? null : questions);
+		return InterviewSessionResponse.from(session, questions.isEmpty() ? null : questions);
 	}
 
-	public InterviewSession findByUuid(UUID uuid) {
+	public InterviewSession findByUuid (UUID uuid) {
 		return sessionRepository.findByUuid(uuid)
 			.orElseThrow(() -> new InterviewSessionNotFoundException("면접 세션을 찾을 수 없습니다."));
 	}
 
-	public void validateOwnership(InterviewSession session, String userUuidStr) {
+	public void validateOwnership (InterviewSession session, String userUuidStr) {
 		if (!session.getUser().getUuid().equals(UUID.fromString(userUuidStr))) {
 			throw new InterviewSessionNotFoundException("면접 세션을 찾을 수 없습니다.");
 		}
-	}
-
-	private InterviewSessionResponse toResponse(InterviewSession session, List<InterviewQuestionResponse> questions) {
-		return new InterviewSessionResponse(
-			session.getUuid(),
-			session.getStatus().name(),
-			session.getInterviewDate(),
-			session.getStartedAt(),
-			session.getEndedAt(),
-			session.getCreatedAt(),
-			questions
-		);
 	}
 }

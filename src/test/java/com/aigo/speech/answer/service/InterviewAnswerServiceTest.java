@@ -3,6 +3,7 @@ package com.aigo.speech.answer.service;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.*;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -13,11 +14,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.aigo.speech.answer.entity.InterviewAnswer;
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
+import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.interview.service.InterviewSessionService;
@@ -34,6 +39,7 @@ class InterviewAnswerServiceTest {
 	@Mock private InterviewQuestionRepository questionRepository;
 	@Mock private InterviewAnswerRepository answerRepository;
 	@Mock private AnswerScoreService answerScoreService;
+	@Mock private SseEmitterService sseEmitterService;
 	@Mock private InterviewSessionService sessionService;
 
 	@InjectMocks
@@ -63,20 +69,46 @@ class InterviewAnswerServiceTest {
 	@Test
 	@DisplayName("정상 답변 제출 시 답변이 저장되고 비동기 점수 저장이 호출된다")
 	void submitAnswer_savesAnswerAndTriggersScoreAsync() {
-		InterviewAnswer savedAnswer = new InterviewAnswer(
-			question, "https://storage.com/audio.wav", "안녕하세요", 90, null, null, null);
-		ReflectionTestUtils.setField(savedAnswer, "id", 1L);
-		ReflectionTestUtils.setField(savedAnswer, "uuid", UUID.randomUUID());
+		InterviewAnswer savedAnswer = savedAnswer();
 
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.of(question));
 		given(answerRepository.existsByQuestion(question)).willReturn(false);
 		given(answerRepository.save(any(InterviewAnswer.class))).willReturn(savedAnswer);
+		given(questionRepository.countBySession(session)).willReturn(5L);
+		given(answerRepository.countBySession(session)).willReturn(1L);
 
 		SubmitAnswerResponse response = answerService.submitAnswer(USER_UUID_STR, QUESTION_UUID, buildRequest());
 
 		assertThat(response.answerUuid()).isNotNull();
 		then(answerRepository).should().save(any(InterviewAnswer.class));
 		then(answerScoreService).should().saveScoreAsync(eq(1L), anyInt(), anyInt(), anyInt());
+		then(sseEmitterService).should(never()).sendEvent(any(), any(), any());
+	}
+
+	@Test
+	@DisplayName("마지막 답변 제출 시 ALL_ANSWERS_SUBMITTED SSE 이벤트가 전송된다")
+	void submitAnswer_whenLastAnswer_sendsAllAnswersSubmittedEvent() {
+		InterviewAnswer savedAnswer = savedAnswer();
+
+		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.of(question));
+		given(answerRepository.existsByQuestion(question)).willReturn(false);
+		given(answerRepository.save(any(InterviewAnswer.class))).willReturn(savedAnswer);
+		given(questionRepository.countBySession(session)).willReturn(5L);
+		given(answerRepository.countBySession(session)).willReturn(5L);
+
+		try (MockedStatic<TransactionSynchronizationManager> tsm =
+				 mockStatic(TransactionSynchronizationManager.class)) {
+			tsm.when(() -> TransactionSynchronizationManager.registerSynchronization(any()))
+				.thenAnswer(invocation -> {
+					invocation.getArgument(0, TransactionSynchronization.class).afterCommit();
+					return null;
+				});
+
+			answerService.submitAnswer(USER_UUID_STR, QUESTION_UUID, buildRequest());
+		}
+
+		then(sseEmitterService).should().sendEvent(eq(SESSION_UUID), eq("ALL_ANSWERS_SUBMITTED"), any());
+		then(sseEmitterService).should().complete(SESSION_UUID);
 	}
 
 	// ======================== 예외 케이스 ========================
@@ -134,6 +166,14 @@ class InterviewAnswerServiceTest {
 	}
 
 	// ======================== helpers ========================
+
+	private InterviewAnswer savedAnswer() {
+		InterviewAnswer answer = new InterviewAnswer(
+			question, "https://storage.com/audio.wav", "안녕하세요", 90, null, null, null);
+		ReflectionTestUtils.setField(answer, "id", 1L);
+		ReflectionTestUtils.setField(answer, "uuid", UUID.randomUUID());
+		return answer;
+	}
 
 	private SubmitAnswerRequest buildRequest() {
 		SubmitAnswerRequest request = new SubmitAnswerRequest();

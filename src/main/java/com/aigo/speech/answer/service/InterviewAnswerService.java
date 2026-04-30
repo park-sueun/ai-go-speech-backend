@@ -33,6 +33,7 @@ public class InterviewAnswerService {
 	private final InterviewQuestionRepository questionRepository;
 	private final InterviewAnswerRepository answerRepository;
 	private final AnswerScoreService answerScoreService;
+	private final SseEmitterService sseEmitterService;
 	private final InterviewSessionService sessionService;
 
 	@Transactional
@@ -65,6 +66,22 @@ public class InterviewAnswerService {
 
 		answerScoreService.saveScoreAsync(answer.getId(),
 			request.getSilenceCount(), request.getTotalSilenceDuration(), request.getAnswerDuration());
+
+		long totalQuestions = questionRepository.countBySession(session);
+		long totalAnswers = answerRepository.countBySession(session);
+
+		if (totalAnswers >= totalQuestions) {
+			UUID sessionUuid = session.getUuid();
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCommit() {
+					sseEmitterService.sendEvent(sessionUuid, "ALL_ANSWERS_SUBMITTED",
+						Map.of("sessionUuid", sessionUuid.toString()));
+					sseEmitterService.complete(sessionUuid);
+				}
+			});
+			log.info("[Answer] 모든 답변 제출 완료. sessionUuid={}", session.getUuid());
+		}
 
 		return new SubmitAnswerResponse(answer.getUuid());
 	}

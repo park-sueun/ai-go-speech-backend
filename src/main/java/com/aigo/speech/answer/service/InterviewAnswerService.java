@@ -3,11 +3,13 @@ package com.aigo.speech.answer.service;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.aigo.speech.answer.dto.AnswerSubmittedEvent;
 import com.aigo.speech.answer.entity.InterviewAnswer;
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
 import com.aigo.speech.global.sse.SseEmitterService;
@@ -32,12 +34,12 @@ public class InterviewAnswerService {
 
 	private final InterviewQuestionRepository questionRepository;
 	private final InterviewAnswerRepository answerRepository;
-	private final AnswerScoreService answerScoreService;
+	private final ApplicationEventPublisher eventPublisher;
 	private final SseEmitterService sseEmitterService;
 	private final InterviewSessionService sessionService;
 
 	@Transactional
-	public SubmitAnswerResponse submitAnswer(String userUuidStr, UUID questionUuid, SubmitAnswerRequest request) {
+	public SubmitAnswerResponse submitAnswer (String userUuidStr, UUID questionUuid, SubmitAnswerRequest request) {
 		InterviewQuestion question = questionRepository.findByUuid(questionUuid)
 			.orElseThrow(() -> new QuestionNotFoundException("질문을 찾을 수 없습니다."));
 
@@ -64,8 +66,13 @@ public class InterviewAnswerService {
 
 		log.info("[Answer] 답변 제출 완료. sessionUuid={}, questionUuid={}", session.getUuid(), question.getUuid());
 
-		answerScoreService.saveScoreAsync(answer.getId(),
-			request.getSilenceCount(), request.getTotalSilenceDuration(), request.getAnswerDuration());
+		// 트랜잭션 커밋 후 AnswerScoreProcessor가 @TransactionalEventListener(AFTER_COMMIT)로 수신
+		eventPublisher.publishEvent(new AnswerSubmittedEvent(
+			answer.getId(),
+			request.getSilenceCount(),
+			request.getTotalSilenceDuration(),
+			request.getAnswerDuration()
+		));
 
 		long totalQuestions = questionRepository.countBySession(session);
 		long totalAnswers = answerRepository.countBySession(session);
@@ -74,9 +81,11 @@ public class InterviewAnswerService {
 			UUID sessionUuid = session.getUuid();
 			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 				@Override
-				public void afterCommit() {
-					sseEmitterService.sendEvent(sessionUuid, "ALL_ANSWERS_SUBMITTED",
-						Map.of("sessionUuid", sessionUuid.toString()));
+				public void afterCommit () {
+					sseEmitterService.sendEvent(
+						sessionUuid, "ALL_ANSWERS_SUBMITTED",
+						Map.of("sessionUuid", sessionUuid.toString())
+					);
 					sseEmitterService.complete(sessionUuid);
 				}
 			});

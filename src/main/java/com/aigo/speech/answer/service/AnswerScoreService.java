@@ -1,6 +1,5 @@
 package com.aigo.speech.answer.service;
 
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,9 +19,8 @@ public class AnswerScoreService {
 	private final InterviewAnswerRepository answerRepository;
 	private final AnswerScoreRepository answerScoreRepository;
 
-	@Async("answerExecutor")
 	@Transactional
-	public void saveScoreAsync(Long answerId, Integer silenceCount,
+	public void saveScore(Long answerId, Integer silenceCount,
 		Integer totalSilenceDuration, Integer answerDuration) {
 
 		InterviewAnswer answer = answerRepository.findById(answerId)

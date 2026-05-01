@@ -1,6 +1,5 @@
 package com.aigo.speech.jobposting.entity;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -82,9 +81,6 @@ public class JobPosting extends BaseTimeEntity {
 
 	@Column(columnDefinition = "TEXT")
 	private String failureReason;
-
-	@Column(name = "interview_date")
-	private LocalDate interviewDate;
 
 	@PrePersist
 	protected void prePersist () {

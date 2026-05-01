@@ -17,7 +17,7 @@ import com.aigo.speech.ai.service.AiService;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
-import com.aigo.speech.interview.service.SseEmitterService;
+import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.question.entity.InterviewQuestion;
 import com.aigo.speech.question.repository.InterviewQuestionRepository;
@@ -52,9 +52,6 @@ public class InterviewQuestionService {
 			for (int i = 0; i < questions.size(); i++) {
 				questionRepository.save(new InterviewQuestion(session, questions.get(i), i + 1));
 			}
-
-			session.start();
-			sessionRepository.save(session);
 
 			log.info("[Question] 질문 생성 완료. sessionId={}, count={}", sessionId, questions.size());
 

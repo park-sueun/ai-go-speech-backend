@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.aigo.speech.global.dto.ApiResponse;
 import com.aigo.speech.jobposting.dto.JobPostingDetailResponse;
@@ -49,6 +51,16 @@ public class JobPostingController {
 	) {
 		UUID userUuid = UUID.fromString(authentication.getName());
 		return ResponseEntity.ok(ApiResponse.success(analyzeService.getMyList(userUuid)));
+	}
+
+	/** 채용공고 분석 완료 SSE 구독. 이미 완료/실패 시 즉시 이벤트 반환 */
+	@GetMapping(value = "/{uuid}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	public SseEmitter stream(
+		@PathVariable UUID uuid,
+		Authentication authentication
+	) {
+		UUID userUuid = UUID.fromString(authentication.getName());
+		return analyzeService.subscribeToAnalysis(uuid, userUuid);
 	}
 
 	/** 채용공고 상세 조회 (status가 DONE이면 분석 결과 포함) */

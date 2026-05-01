@@ -34,7 +34,7 @@ import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
 import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
-import com.aigo.speech.interview.service.SseEmitterService;
+import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.jobposting.entity.JobPostingStatus;
 import com.aigo.speech.question.entity.InterviewQuestion;
@@ -84,15 +84,14 @@ class InterviewQuestionServiceTest {
 	// ======================== 정상 케이스 ========================
 
 	@Test
-	@DisplayName("AI 호출 성공 시 질문 5개가 저장되고 세션이 IN_PROGRESS로 전환된다")
-	void generateQuestionsAsync_success_savesQuestionsAndStartsSession() {
+	@DisplayName("AI 호출 성공 시 질문 5개가 저장되고 SSE 이벤트가 전송된다")
+	void generateQuestionsAsync_success_savesQuestionsAndSendsEvent() {
 		String questionsJson = "[\"질문1\", \"질문2\", \"질문3\", \"질문4\", \"질문5\"]";
 		given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
 		given(aiService.complete(any(AiPromptRequest.class)))
 			.willReturn(new AiResponse("gemini", "gemini-2.0-flash", questionsJson));
 		given(questionRepository.save(any(InterviewQuestion.class)))
 			.willAnswer(invocation -> invocation.getArgument(0));
-		given(sessionRepository.save(any(InterviewSession.class))).willReturn(session);
 
 		try (MockedStatic<TransactionSynchronizationManager> tsm =
 				 mockStatic(TransactionSynchronizationManager.class)) {
@@ -106,8 +105,6 @@ class InterviewQuestionServiceTest {
 
 			questionService.generateQuestionsAsync(SESSION_ID);
 		}
-
-		assertThat(session.getStatus()).isEqualTo(InterviewStatus.IN_PROGRESS);
 
 		ArgumentCaptor<InterviewQuestion> captor = ArgumentCaptor.forClass(InterviewQuestion.class);
 		then(questionRepository).should(times(5)).save(captor.capture());
@@ -130,7 +127,6 @@ class InterviewQuestionServiceTest {
 		given(aiService.complete(any(AiPromptRequest.class)))
 			.willReturn(new AiResponse("gemini", "gemini-2.0-flash", questionsJson));
 		given(questionRepository.save(any())).willAnswer(i -> i.getArgument(0));
-		given(sessionRepository.save(any())).willReturn(session);
 
 		ArgumentCaptor<AiPromptRequest> promptCaptor = ArgumentCaptor.forClass(AiPromptRequest.class);
 

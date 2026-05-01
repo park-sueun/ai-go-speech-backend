@@ -15,5 +15,7 @@ public interface InterviewQuestionRepository extends JpaRepository<InterviewQues
 
 	List<InterviewQuestion> findBySessionOrderBySequenceOrderAsc(InterviewSession session);
 
+	Optional<InterviewQuestion> findBySessionAndSequenceOrder(InterviewSession session, int sequenceOrder);
+
 	long countBySession(InterviewSession session);
 }

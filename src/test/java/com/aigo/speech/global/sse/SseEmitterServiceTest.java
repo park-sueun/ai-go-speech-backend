@@ -1,4 +1,4 @@
-package com.aigo.speech.interview.service;
+package com.aigo.speech.global.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -13,7 +13,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 class SseEmitterServiceTest {
 
 	private SseEmitterService sseEmitterService;
-	private static final UUID SESSION_UUID = UUID.randomUUID();
+	private static final UUID TEST_UUID = UUID.randomUUID();
 
 	@BeforeEach
 	void setUp() {
@@ -23,7 +23,7 @@ class SseEmitterServiceTest {
 	@Test
 	@DisplayName("register 호출 시 SseEmitter가 반환된다")
 	void register_returnsEmitter() {
-		SseEmitter emitter = sseEmitterService.register(SESSION_UUID);
+		SseEmitter emitter = sseEmitterService.register(TEST_UUID);
 
 		assertThat(emitter).isNotNull();
 	}
@@ -31,8 +31,8 @@ class SseEmitterServiceTest {
 	@Test
 	@DisplayName("동일 UUID로 register 재호출 시 새 emitter로 교체된다")
 	void register_withSameUuid_replacesExistingEmitter() {
-		SseEmitter first = sseEmitterService.register(SESSION_UUID);
-		SseEmitter second = sseEmitterService.register(SESSION_UUID);
+		SseEmitter first = sseEmitterService.register(TEST_UUID);
+		SseEmitter second = sseEmitterService.register(TEST_UUID);
 
 		assertThat(second).isNotSameAs(first);
 	}
@@ -56,11 +56,11 @@ class SseEmitterServiceTest {
 	@Test
 	@DisplayName("complete 호출 후 동일 UUID로 sendEvent 호출 시 예외 없이 처리된다")
 	void complete_thenSendEvent_doesNotThrow() {
-		sseEmitterService.register(SESSION_UUID);
-		sseEmitterService.complete(SESSION_UUID);
+		sseEmitterService.register(TEST_UUID);
+		sseEmitterService.complete(TEST_UUID);
 
 		assertThatNoException().isThrownBy(
-			() -> sseEmitterService.sendEvent(SESSION_UUID, "TEST_EVENT", "data")
+			() -> sseEmitterService.sendEvent(TEST_UUID, "TEST_EVENT", "data")
 		);
 	}
 }

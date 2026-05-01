@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.aigo.speech.global.entity.BaseTimeEntity;
+import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.user.entity.User;
 
@@ -72,16 +73,26 @@ public class InterviewSession extends BaseTimeEntity {
 	}
 
 	public void start () {
-		if (this.status == InterviewStatus.READY) {
-			this.status = InterviewStatus.IN_PROGRESS;
-			this.startedAt = LocalDateTime.now();
+		if (this.status != InterviewStatus.READY) {
+			throw new InvalidSessionStatusException("READY 상태에서만 시작할 수 있습니다.");
 		}
+		this.status = InterviewStatus.IN_PROGRESS;
+		this.startedAt = LocalDateTime.now();
 	}
 
 	public void complete () {
-		if (this.status == InterviewStatus.IN_PROGRESS) {
-			this.status = InterviewStatus.COMPLETED;
-			this.endedAt = LocalDateTime.now();
+		if (this.status != InterviewStatus.IN_PROGRESS) {
+			throw new InvalidSessionStatusException("진행 중인 면접 세션만 완료할 수 있습니다.");
 		}
+		this.status = InterviewStatus.COMPLETED;
+		this.endedAt = LocalDateTime.now();
+	}
+
+	public void abandon () {
+		if (this.status != InterviewStatus.READY && this.status != InterviewStatus.IN_PROGRESS) {
+			throw new InvalidSessionStatusException("READY 또는 IN_PROGRESS 상태에서만 종료할 수 있습니다.");
+		}
+		this.status = InterviewStatus.ABANDONED;
+		this.endedAt = LocalDateTime.now();
 	}
 }

@@ -1,12 +1,18 @@
 package com.aigo.speech.jobposting.service;
 
+import java.util.Map;
+import java.util.UUID;
+
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.jobposting.crawler.CrawlerFactory;
 import com.aigo.speech.jobposting.dto.JobPostingAnalyzeResponse;
 import com.aigo.speech.jobposting.entity.JobPosting;
@@ -25,6 +31,7 @@ public class JobPostingAnalysisProcessor {
 	private final JobPostingRepository jobPostingRepository;
 	private final CrawlerFactory crawlerFactory;
 	private final JobPostingParser jobPostingParser;
+	private final SseEmitterService sseEmitterService;
 
 	/**
 	 * submit() 트랜잭션이 커밋된 후 실행 → entity가 DB에 확정된 상태에서 크롤링 시작.
@@ -39,6 +46,8 @@ public class JobPostingAnalysisProcessor {
 
 		log.info("[Processor] 분석 시작. uuid={}, url={}", jobPosting.getUuid(), jobPosting.getUrl());
 
+		UUID jobPostingUuid = jobPosting.getUuid();
+
 		try {
 			jobPosting.markAnalyzing();
 			jobPostingRepository.save(jobPosting);
@@ -52,12 +61,30 @@ public class JobPostingAnalysisProcessor {
 			jobPosting.markDone(result);
 			jobPostingRepository.save(jobPosting);
 
-			log.info("[Processor] 분석 완료. uuid={}", jobPosting.getUuid());
+			log.info("[Processor] 분석 완료. uuid={}", jobPostingUuid);
+
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCommit() {
+					sseEmitterService.sendEvent(jobPostingUuid, "JOB_POSTING_ANALYSIS_DONE",
+						Map.of("jobPostingUuid", jobPostingUuid.toString()));
+					sseEmitterService.complete(jobPostingUuid);
+				}
+			});
 
 		} catch (Exception e) {
-			log.error("[Processor] 분석 실패. uuid={}, reason={}", jobPosting.getUuid(), e.getMessage());
+			log.error("[Processor] 분석 실패. uuid={}, reason={}", jobPostingUuid, e.getMessage());
 			jobPosting.markFailed(e.getMessage());
 			jobPostingRepository.save(jobPosting);
+
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCommit() {
+					sseEmitterService.sendEvent(jobPostingUuid, "ERROR",
+						Map.of("message", "채용공고 분석에 실패했습니다."));
+					sseEmitterService.complete(jobPostingUuid);
+				}
+			});
 		}
 	}
 }

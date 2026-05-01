@@ -41,7 +41,7 @@ public class Curriculum extends BaseTimeEntity {
 	private User user;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "job_posting_id", nullable = false)
+	@JoinColumn(name = "job_posting_id", nullable = true)
 	private JobPosting jobPosting;
 
 	@Enumerated(EnumType.STRING)
@@ -51,11 +51,16 @@ public class Curriculum extends BaseTimeEntity {
 	@Column(nullable = false)
 	private LocalDate scheduleDate;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "interview_schedule_id", nullable = false)
+	private InterviewSchedule interviewSchedule;
+
 	public static Curriculum create (
-		User user, JobPosting jobPosting, CurriculmContent content, LocalDate scheduleDate) {
+		User user, InterviewSchedule interviewSchedule, CurriculmContent content, LocalDate scheduleDate) {
 		Curriculum curriculum = new Curriculum();
+		curriculum.uuid = UUID.randomUUID();
 		curriculum.user = user;
-		curriculum.jobPosting = jobPosting;
+		curriculum.interviewSchedule = interviewSchedule;
 		curriculum.content = content;
 		curriculum.scheduleDate = scheduleDate;
 		return curriculum;

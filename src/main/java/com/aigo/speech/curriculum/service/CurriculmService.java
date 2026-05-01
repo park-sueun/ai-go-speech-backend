@@ -1,6 +1,7 @@
 package com.aigo.speech.curriculum.service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -9,11 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.aigo.speech.auth.exception.UserNotFoundException;
-import com.aigo.speech.curriculum.dto.CurriculmResponse;
+import com.aigo.speech.curriculum.dto.CurriculumResponse;
 import com.aigo.speech.curriculum.entity.CurriculmContent;
 import com.aigo.speech.curriculum.entity.Curriculum;
-import com.aigo.speech.curriculum.exception.CurriculumAlreadyExistsException;
+import com.aigo.speech.curriculum.entity.InterviewSchedule;
 import com.aigo.speech.curriculum.repository.CurriculmRepository;
+import com.aigo.speech.curriculum.repository.InterviewScheduleRepository;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.jobposting.exception.JobPostingNotFoundException;
 import com.aigo.speech.jobposting.repository.JobPostingRepository;
@@ -31,59 +33,53 @@ public class CurriculmService {
 	private final CurriculmRepository curriculmRepository;
 	private final JobPostingRepository jobPostingRepository;
 	private final UserRepository userRepository;
+	private final InterviewScheduleRepository interviewScheduleRepository;
 
-	// 면접 일정 등록 시 호출
+	/* 홈 화면에서 면접 일정 등록 시 호출 */
 	@Transactional
-	public List<CurriculmResponse> generateCurriculum (String userUuid, UUID jobPostingUuid) {
-		User user = findUser(userUuid);
-		JobPosting jobPosting = findJobPosting(jobPostingUuid);
-
-		if (curriculmRepository.existsByJobPosting(jobPosting)) {
-			throw new CurriculumAlreadyExistsException("이미 커리큘럼이 생성된 채용 공고입니다.");
-		}
-		LocalDate interviewDate = jobPosting.getInterviewDate();
-		if (interviewDate == null) {
-			throw new IllegalStateException("면접 날짜가 설정되지 않은 공고입니다.");
-		}
-
+	public List<CurriculumResponse> generateCurriculum (User user, InterviewSchedule interviewSchedule) {
+		LocalDate interviewDate = interviewSchedule.getInterviewDate();
 		LocalDate today = LocalDate.now();
-		long D_day = java.time.temporal.ChronoUnit.DAYS.between(today, interviewDate);
-		if (D_day <= 0) {
+
+		long d_day = ChronoUnit.DAYS.between(today, interviewDate);
+		if (d_day <= 0) {
 			throw new IllegalStateException("면접 날짜가 오늘 이전이라 커리큘럼을 생성할 수 없습니다.");
 		}
 
-		// 생성할 커리큘럼 수
-		int n = (int)Math.min(D_day, 7);
+		/* 최대 7개의 커리큘럼 항목 생성 */
+		int n = (int)Math.min(d_day, 7);
 		CurriculmContent[] master = CurriculmContent.MASTER;
-		List<Curriculum> curriculm = new ArrayList<>();
+		List<Curriculum> curriculum = new ArrayList<>();
 
-		// 총 7개의 항목에서 앞에서부터 n개씩 끊어서 보여줌
 		for (int i = 1; i <= n; i++) {
-			CurriculmContent content = master[i - 1];
 			LocalDate scheduleDate = interviewDate.minusDays(n - i);
-			curriculm.add(Curriculum.create(user, jobPosting, content, scheduleDate));
+			curriculum.add(Curriculum.create(user, interviewSchedule, master[i - 1], scheduleDate));
 		}
 
-		List<Curriculum> saved = curriculmRepository.saveAll(curriculm);
-		log.info("[Curriculum] Generated {} items for jopPosting uuid = {}", saved.size(), jobPostingUuid);
-
-		return saved.stream().map(CurriculmResponse::from).toList();
+		return curriculmRepository.saveAll(curriculum)
+			.stream().map(CurriculumResponse::from).toList();
 	}
 
-	public List<CurriculmResponse> getCurriculumsByJobPosting (String userUuid, UUID jobPostingUuid) {
-		findUser(userUuid);
-		JobPosting jobPosting = findJobPosting(jobPostingUuid);
+	public List<CurriculumResponse> getCurriculumsBySchedule (UUID userUuid, UUID scheduleUuid) {
+		InterviewSchedule schedule = interviewScheduleRepository.findByUuid(scheduleUuid)
+			.orElseThrow(() -> new IllegalArgumentException("해당 일정을 찾을 수 없습니다."));
 
-		return curriculmRepository.findByJobPostingOrderByScheduleDateAsc(jobPosting)
-			.stream().map(CurriculmResponse::from).toList();
+		if (!schedule.getUser().getUuid().equals(userUuid)) {
+			throw new IllegalArgumentException("해당 일정을 조회할 권한이 없습니다.");
+		}
+		return curriculmRepository.findByInterviewScheduleOrderByScheduleDateAsc(schedule)
+			.stream()
+			.limit(5)
+			.map(CurriculumResponse::from)
+			.toList();
 	}
 
-	public List<CurriculmResponse> getTodayCurriculums (String userUuid) {
+	public List<CurriculumResponse> getTodayCurriculums (String userUuid) {
 		User user = findUser(userUuid);
 		LocalDate today = LocalDate.now();
 
 		return curriculmRepository.findByUserIdAndScheduleDate(user.getId(), today)
-			.stream().map(CurriculmResponse::from).toList();
+			.stream().map(CurriculumResponse::from).toList();
 	}
 
 	private User findUser (String userUuid) {

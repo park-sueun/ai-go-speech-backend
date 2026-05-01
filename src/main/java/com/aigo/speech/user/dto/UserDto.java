@@ -1,5 +1,7 @@
 package com.aigo.speech.user.dto;
 
+import java.time.LocalDateTime;
+
 import com.aigo.speech.user.entity.Provider;
 import com.aigo.speech.user.entity.User;
 
@@ -19,6 +21,7 @@ public class UserDto {
 		private String nickname;
 		private Provider provider;
 		private String profileImageUrl;
+		private LocalDateTime createdAt;
 
 		public static UserInfoResponse from (User user) { // 사용자 정보 조회
 			return UserInfoResponse.builder()
@@ -26,6 +29,7 @@ public class UserDto {
 				.nickname(user.getProfile().getNickname())
 				.provider(user.getProvider())
 				.profileImageUrl(user.getProfile().getProfileImageUrl())
+				.createdAt(user.getCreatedAt())
 				.build();
 		}
 	}

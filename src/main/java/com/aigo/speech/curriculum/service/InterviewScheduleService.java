@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 public class InterviewScheduleService {
 	private final InterviewScheduleRepository scheduleRepository;
 	private final UserRepository userRepository;
-	private final CurriculmService curriculmService;
+	private final CurriculumService curriculmService;
 
 	@Transactional
 	public InterviewScheduleResponse register (UUID userUuid, InterviewScheduleRequest request) {

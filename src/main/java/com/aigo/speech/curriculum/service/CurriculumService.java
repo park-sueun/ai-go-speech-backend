@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CurriculmService {
+public class CurriculumService {
 	private final CurriculmRepository curriculmRepository;
 	private final JobPostingRepository jobPostingRepository;
 	private final UserRepository userRepository;

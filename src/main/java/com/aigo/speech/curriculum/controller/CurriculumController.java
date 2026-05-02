@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.aigo.speech.curriculum.dto.CurriculumResponse;
-import com.aigo.speech.curriculum.service.CurriculmService;
+import com.aigo.speech.curriculum.service.CurriculumService;
 import com.aigo.speech.global.dto.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/curriculum")
 @RequiredArgsConstructor
 public class CurriculumController {
-	private final CurriculmService curriculmService;
+	private final CurriculumService curriculmService;
 
 	@GetMapping
 	public ResponseEntity<ApiResponse<List<CurriculumResponse>>> getCurriculum (

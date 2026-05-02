@@ -10,13 +10,16 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class Terms {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,7 +51,9 @@ public class Terms {
 	private LocalDateTime createdAt = LocalDateTime.now();
 
 	@Builder
-	public Terms (TermsType type, String title, String content, String version, Boolean required, Boolean isActive) {
+	public Terms (
+		Long id, TermsType type, String title, String content, String version, Boolean required, Boolean isActive) {
+		this.id = id;
 		this.type = type;
 		this.title = title;
 		this.content = content;

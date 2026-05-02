@@ -1,15 +1,13 @@
 package com.aigo.speech.auth.service;
 
-import com.aigo.speech.auth.exception.DuplicateEmailException;
-import com.aigo.speech.auth.dto.AuthDto.LoginRequest;
-import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
-import com.aigo.speech.auth.dto.AuthDto.TokenResponse;
-import com.aigo.speech.auth.dto.TokenRequest;
-import com.aigo.speech.auth.jwt.JwtTokenProvider;
-import com.aigo.speech.user.entity.Profile;
-import com.aigo.speech.user.entity.User;
-import com.aigo.speech.user.repository.ProfileRepository;
-import com.aigo.speech.user.repository.UserRepository;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.*;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,183 +15,240 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import java.util.Optional;
-import java.util.UUID;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import com.aigo.speech.auth.dto.AuthDto.LoginRequest;
+import com.aigo.speech.auth.dto.AuthDto.SignupRequest;
+import com.aigo.speech.auth.dto.AuthDto.TokenResponse;
+import com.aigo.speech.auth.dto.TokenRequest;
+import com.aigo.speech.auth.exception.DuplicateEmailException;
+import com.aigo.speech.auth.jwt.JwtTokenProvider;
+import com.aigo.speech.terms.entity.Terms;
+import com.aigo.speech.terms.exception.InvalidTermsAgreementException;
+import com.aigo.speech.terms.repository.TermsRepository;
+import com.aigo.speech.terms.repository.UserTermsAgreementRepository;
+import com.aigo.speech.user.entity.User;
+import com.aigo.speech.user.repository.ProfileRepository;
+import com.aigo.speech.user.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+	@Mock
+	private UserRepository userRepository;
 
-    @Mock
-    private ProfileRepository profileRepository;
+	@Mock
+	private ProfileRepository profileRepository;
 
-    @Mock
-    private JwtTokenProvider jwtTokenProvider;
+	@Mock
+	private JwtTokenProvider jwtTokenProvider;
 
-    @Mock
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
+	@Mock
+	private BCryptPasswordEncoder bCryptPasswordEncoder;
 
-    @InjectMocks
-    private AuthService authService;
+	@Mock
+	private TermsRepository termsRepository;
 
-    private static final String EMAIL = "user@example.com";
-    private static final String PASSWORD = "password123";
-    private static final String ENCODED_PASSWORD = "encoded_password";
-    private static final UUID USER_UUID = UUID.randomUUID();
+	@Mock
+	private UserTermsAgreementRepository userTermsAgreementRepository;
 
-    // ======================== signup ========================
+	@InjectMocks
+	private AuthService authService;
 
-    @Test
-    @DisplayName("중복 이메일로 가입 시 예외가 발생한다")
-    void signup_withDuplicateEmail_throwsException() {
-        SignupRequest request = new SignupRequest();
-        request.setEmail(EMAIL);
-        request.setPassword(PASSWORD);
-        request.setNickname("tester");
-        given(userRepository.existsByEmail(EMAIL)).willReturn(true);
+	private static final String EMAIL = "user@example.com";
+	private static final String PASSWORD = "password123";
+	private static final String ENCODED_PASSWORD = "encoded_password";
+	private static final UUID USER_UUID = UUID.randomUUID();
 
-        assertThatThrownBy(() -> authService.signup(request))
-                .isInstanceOf(DuplicateEmailException.class)
-                .hasMessage("이미 사용중인 이메일입니다.");
+	// ======================== signup ========================
 
-        verify(userRepository, never()).save(any());
-    }
+	@Test
+	@DisplayName("중복 이메일로 가입 시 예외가 발생한다")
+	void signup_withDuplicateEmail_throwsException () {
+		SignupRequest request = new SignupRequest();
+		request.setEmail(EMAIL);
+		request.setPassword(PASSWORD);
+		request.setNickname("tester");
+		given(userRepository.existsByEmail(EMAIL)).willReturn(true);
 
-    @Test
-    @DisplayName("유효한 정보로 회원가입 시 사용자가 저장된다")
-    void signup_withValidRequest_savesUser() {
-        SignupRequest request = new SignupRequest();
-        request.setEmail(EMAIL);
-        request.setPassword(PASSWORD);
-        request.setNickname("tester");
-        given(userRepository.existsByEmail(EMAIL)).willReturn(false);
-        given(bCryptPasswordEncoder.encode(PASSWORD)).willReturn(ENCODED_PASSWORD);
+		assertThatThrownBy(() -> authService.signup(request))
+			.isInstanceOf(DuplicateEmailException.class)
+			.hasMessage("이미 사용중인 이메일입니다.");
 
-        authService.signup(request);
+		verify(userRepository, never()).save(any());
+	}
 
-        verify(userRepository).save(any(User.class));
-    }
+	@Test
+	@DisplayName("유효한 정보로 회원가입 시 사용자가 저장된다")
+	void signup_withValidRequest_savesUser () {
+		SignupRequest request = new SignupRequest();
+		request.setEmail(EMAIL);
+		request.setPassword(PASSWORD);
+		request.setNickname("tester");
+		given(userRepository.existsByEmail(EMAIL)).willReturn(false);
+		given(bCryptPasswordEncoder.encode(PASSWORD)).willReturn(ENCODED_PASSWORD);
 
-    // ======================== login ========================
+		authService.signup(request);
 
-    @Test
-    @DisplayName("존재하지 않는 이메일로 로그인 시 예외가 발생한다")
-    void login_withUnknownEmail_throwsException() {
-        LoginRequest request = new LoginRequest();
-        request.setEmail(EMAIL);
-        request.setPassword(PASSWORD);
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.empty());
+		verify(userRepository).save(any(User.class));
+	}
 
-        assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("존재하지 않는 사용자입니다.");
-    }
+	// ======================== login ========================
 
-    @Test
-    @DisplayName("비밀번호가 틀린 경우 예외가 발생한다")
-    void login_withWrongPassword_throwsException() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
-        LoginRequest request = new LoginRequest();
-        request.setEmail(EMAIL);
-        request.setPassword("wrongPassword");
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
-        given(bCryptPasswordEncoder.matches("wrongPassword", ENCODED_PASSWORD)).willReturn(false);
+	@Test
+	@DisplayName("존재하지 않는 이메일로 로그인 시 예외가 발생한다")
+	void login_withUnknownEmail_throwsException () {
+		LoginRequest request = new LoginRequest();
+		request.setEmail(EMAIL);
+		request.setPassword(PASSWORD);
+		given(userRepository.findByEmail(EMAIL)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("비밀번호가 일치하지 않습니다.");
-    }
+		assertThatThrownBy(() -> authService.login(request))
+			.isInstanceOf(RuntimeException.class)
+			.hasMessage("존재하지 않는 사용자입니다.");
+	}
 
-    @Test
-    @DisplayName("올바른 정보로 로그인 시 액세스/리프레시 토큰을 반환한다")
-    void login_withValidCredentials_returnsTokens() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
-        ReflectionTestUtils.setField(user, "uuid", USER_UUID);
-        LoginRequest request = new LoginRequest();
-        request.setEmail(EMAIL);
-        request.setPassword(PASSWORD);
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
-        given(bCryptPasswordEncoder.matches(PASSWORD, ENCODED_PASSWORD)).willReturn(true);
-        given(jwtTokenProvider.createAccessToken(USER_UUID)).willReturn("access-token");
-        given(jwtTokenProvider.createRefreshToken(USER_UUID)).willReturn("refresh-token");
+	@Test
+	@DisplayName("비밀번호가 틀린 경우 예외가 발생한다")
+	void login_withWrongPassword_throwsException () {
+		User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
+		LoginRequest request = new LoginRequest();
+		request.setEmail(EMAIL);
+		request.setPassword("wrongPassword");
+		given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+		given(bCryptPasswordEncoder.matches("wrongPassword", ENCODED_PASSWORD)).willReturn(false);
 
-        TokenResponse response = authService.login(request);
+		assertThatThrownBy(() -> authService.login(request))
+			.isInstanceOf(RuntimeException.class)
+			.hasMessage("비밀번호가 일치하지 않습니다.");
+	}
 
-        assertThat(response.getAccessToken()).isEqualTo("access-token");
-        assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
-        assertThat(user.getRefreshToken()).isEqualTo("refresh-token");
-    }
+	@Test
+	@DisplayName("올바른 정보로 로그인 시 액세스/리프레시 토큰을 반환한다")
+	void login_withValidCredentials_returnsTokens () {
+		User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
+		ReflectionTestUtils.setField(user, "uuid", USER_UUID);
+		LoginRequest request = new LoginRequest();
+		request.setEmail(EMAIL);
+		request.setPassword(PASSWORD);
+		given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+		given(bCryptPasswordEncoder.matches(PASSWORD, ENCODED_PASSWORD)).willReturn(true);
+		given(jwtTokenProvider.createAccessToken(USER_UUID)).willReturn("access-token");
+		given(jwtTokenProvider.createRefreshToken(USER_UUID)).willReturn("refresh-token");
 
-    // ======================== updateRefreshToken ========================
+		TokenResponse response = authService.login(request);
 
-    @Test
-    @DisplayName("유효하지 않은 리프레시 토큰으로 갱신 시 예외가 발생한다")
-    void updateRefreshToken_withInvalidToken_throwsException() {
-        TokenRequest request = new TokenRequest("invalid-token");
-        given(jwtTokenProvider.validateToken("invalid-token")).willReturn(false);
+		assertThat(response.getAccessToken()).isEqualTo("access-token");
+		assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
+		assertThat(user.getRefreshToken()).isEqualTo("refresh-token");
+	}
 
-        assertThatThrownBy(() -> authService.updateRefreshToken(request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("리프레시 토큰이 유효하지 않습니다.");
-    }
+	// ======================== updateRefreshToken ========================
 
-    @Test
-    @DisplayName("저장된 토큰과 일치하지 않는 경우 예외가 발생한다")
-    void updateRefreshToken_withMismatchedToken_throwsException() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
-        user.updateRefreshToken("stored-token");
-        TokenRequest request = new TokenRequest("different-token");
-        given(jwtTokenProvider.validateToken("different-token")).willReturn(true);
-        given(jwtTokenProvider.getUuid("different-token")).willReturn(USER_UUID);
-        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
+	@Test
+	@DisplayName("유효하지 않은 리프레시 토큰으로 갱신 시 예외가 발생한다")
+	void updateRefreshToken_withInvalidToken_throwsException () {
+		TokenRequest request = new TokenRequest("invalid-token");
+		given(jwtTokenProvider.validateToken("invalid-token")).willReturn(false);
 
-        assertThatThrownBy(() -> authService.updateRefreshToken(request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("일치하는 토큰 정보가 없습니다. 다시 시도해주세요.");
-    }
+		assertThatThrownBy(() -> authService.updateRefreshToken(request))
+			.isInstanceOf(RuntimeException.class)
+			.hasMessage("리프레시 토큰이 유효하지 않습니다.");
+	}
 
-    @Test
-    @DisplayName("유효한 리프레시 토큰으로 새 토큰 쌍을 반환한다")
-    void updateRefreshToken_withValidToken_returnsNewTokens() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
-        user.updateRefreshToken("refresh-token");
-        TokenRequest request = new TokenRequest("refresh-token");
-        given(jwtTokenProvider.validateToken("refresh-token")).willReturn(true);
-        given(jwtTokenProvider.getUuid("refresh-token")).willReturn(USER_UUID);
-        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
-        given(jwtTokenProvider.createAccessToken(USER_UUID)).willReturn("new-access-token");
-        given(jwtTokenProvider.createRefreshToken(USER_UUID)).willReturn("new-refresh-token");
+	@Test
+	@DisplayName("저장된 토큰과 일치하지 않는 경우 예외가 발생한다")
+	void updateRefreshToken_withMismatchedToken_throwsException () {
+		User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
+		user.updateRefreshToken("stored-token");
+		TokenRequest request = new TokenRequest("different-token");
+		given(jwtTokenProvider.validateToken("different-token")).willReturn(true);
+		given(jwtTokenProvider.getUuid("different-token")).willReturn(USER_UUID);
+		given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
 
-        TokenResponse response = authService.updateRefreshToken(request);
+		assertThatThrownBy(() -> authService.updateRefreshToken(request))
+			.isInstanceOf(RuntimeException.class)
+			.hasMessage("일치하는 토큰 정보가 없습니다. 다시 시도해주세요.");
+	}
 
-        assertThat(response.getAccessToken()).isEqualTo("new-access-token");
-        assertThat(response.getRefreshToken()).isEqualTo("new-refresh-token");
-        assertThat(user.getRefreshToken()).isEqualTo("new-refresh-token");
-    }
+	@Test
+	@DisplayName("유효한 리프레시 토큰으로 새 토큰 쌍을 반환한다")
+	void updateRefreshToken_withValidToken_returnsNewTokens () {
+		User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
+		user.updateRefreshToken("refresh-token");
+		TokenRequest request = new TokenRequest("refresh-token");
+		given(jwtTokenProvider.validateToken("refresh-token")).willReturn(true);
+		given(jwtTokenProvider.getUuid("refresh-token")).willReturn(USER_UUID);
+		given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
+		given(jwtTokenProvider.createAccessToken(USER_UUID)).willReturn("new-access-token");
+		given(jwtTokenProvider.createRefreshToken(USER_UUID)).willReturn("new-refresh-token");
 
-    // ======================== logout ========================
+		TokenResponse response = authService.updateRefreshToken(request);
 
-    @Test
-    @DisplayName("로그아웃 시 사용자의 리프레시 토큰이 초기화된다")
-    void logout_clearsRefreshToken() {
-        User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
-        user.updateRefreshToken("refresh-token");
-        given(jwtTokenProvider.getUuid("access-token")).willReturn(USER_UUID);
-        given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
+		assertThat(response.getAccessToken()).isEqualTo("new-access-token");
+		assertThat(response.getRefreshToken()).isEqualTo("new-refresh-token");
+		assertThat(user.getRefreshToken()).isEqualTo("new-refresh-token");
+	}
 
-        authService.logout("access-token");
+	// ======================== logout ========================
 
-        assertThat(user.getRefreshToken()).isNull();
-    }
+	@Test
+	@DisplayName("로그아웃 시 사용자의 리프레시 토큰이 초기화된다")
+	void logout_clearsRefreshToken () {
+		User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
+		user.updateRefreshToken("refresh-token");
+		given(jwtTokenProvider.getUuid("access-token")).willReturn(USER_UUID);
+		given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
+
+		authService.logout("access-token");
+
+		assertThat(user.getRefreshToken()).isNull();
+	}
+
+	@Test
+	@DisplayName("필수 약관에 동의하지 않고 회원가입 시 예외가 발생한다.")
+	void signup_withMissingRequiredTerm_throwsException () {
+		SignupRequest request = new SignupRequest();
+		request.setEmail("test@example.com");
+		request.setPassword("password123!");
+		request.setConfirmPassword("password123!");
+		request.setNickname("tester");
+		request.setAgreedTerms(List.of());
+
+		Terms requiredTerms = Terms.builder()
+			.required(true)
+			.isActive(true)
+			.build();
+		ReflectionTestUtils.setField(requiredTerms, "id", 1L);
+
+		given(termsRepository.findAllByIsActiveTrue()).willReturn(List.of(requiredTerms));
+
+		given(userRepository.existsByEmail(anyString())).willReturn(false);
+
+		assertThatThrownBy(() -> authService.signup(request))
+			.isInstanceOf(InvalidTermsAgreementException.class)
+			.hasMessage("모든 필수 약관에 동의해야 합니다.");
+	}
+
+	@Test
+	@DisplayName("필수 약관 동의를 포함한 회원가입 시 이력이 저장된다")
+	void signup_withTerms_savesAgreement () {
+		SignupRequest request = new SignupRequest();
+		request.setEmail(EMAIL);
+		request.setPassword(PASSWORD);
+		request.setConfirmPassword(PASSWORD);
+		request.setNickname("tester");
+		request.setAgreedTerms(List.of(1L));
+
+		Terms terms = Terms.builder().id(1L).required(true).isActive(true).build();
+
+		given(termsRepository.findAllByIsActiveTrue()).willReturn(List.of(terms));
+		given(termsRepository.findAllById(List.of(1L))).willReturn(List.of(terms));
+		given(userRepository.existsByEmail(EMAIL)).willReturn(false);
+		given(profileRepository.existsByNickname(anyString())).willReturn(false);
+
+		authService.signup(request);
+
+		verify(userTermsAgreementRepository).saveAll(any());
+	}
 }

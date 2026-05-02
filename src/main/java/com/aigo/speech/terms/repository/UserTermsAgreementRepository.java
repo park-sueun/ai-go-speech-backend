@@ -10,6 +10,4 @@ import com.aigo.speech.user.entity.User;
 public interface UserTermsAgreementRepository extends JpaRepository<UserTermsAgreement, Long> {
 
 	List<UserTermsAgreement> findAllByUser (User user);
-
-	boolean existsByUserAndTermsId (User user, Long termsId);
 }

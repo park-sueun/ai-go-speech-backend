@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.aigo.speech.curriculum.entity.Curriculum;
 import com.aigo.speech.curriculum.entity.InterviewSchedule;
 
-public interface CurriculmRepository extends JpaRepository<Curriculum, Long> {
+public interface CurriculumRepository extends JpaRepository<Curriculum, Long> {
 
 	Optional<Curriculum> findByUuid (UUID uuid);
 

@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/curriculum")
 @RequiredArgsConstructor
 public class CurriculumController {
-	private final CurriculumService curriculmService;
+	private final CurriculumService curriculumService;
 
 	@GetMapping
 	public ResponseEntity<ApiResponse<List<CurriculumResponse>>> getCurriculum (
@@ -29,7 +29,7 @@ public class CurriculumController {
 	) {
 		UUID userUuid = UUID.fromString(authentication.getName());
 
-		List<CurriculumResponse> responses = curriculmService.getCurriculumsBySchedule(userUuid, scheduleUuid);
+		List<CurriculumResponse> responses = curriculumService.getCurriculumsBySchedule(userUuid, scheduleUuid);
 		return ResponseEntity.ok(ApiResponse.success(responses));
 	}
 
@@ -39,7 +39,7 @@ public class CurriculumController {
 	) {
 		UUID userUuid = UUID.fromString(authentication.getName());
 
-		List<CurriculumResponse> responses = curriculmService.getTodayCurriculums(userUuid);
+		List<CurriculumResponse> responses = curriculumService.getTodayCurriculums(userUuid);
 		return ResponseEntity.ok(ApiResponse.success(responses));
 	}
 

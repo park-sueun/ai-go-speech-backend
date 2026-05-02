@@ -1,6 +1,6 @@
 package com.aigo.speech.curriculum.entity;
 
-public enum CurriculmContent {
+public enum CurriculumContent {
 
 	MOCK_INTERVIEWS_1("1차 모의면접"),
 	HABIT_CORRECTION("습관어 집중 교정"),
@@ -12,7 +12,7 @@ public enum CurriculmContent {
 
 	private final String title;
 
-	CurriculmContent (String title) {
+	CurriculumContent (String title) {
 		this.title = title;
 	}
 
@@ -21,5 +21,5 @@ public enum CurriculmContent {
 	}
 
 	//d-day 수만큼 앞에서 끊어서 사용
-	public static final CurriculmContent[] MASTER = CurriculmContent.values();
+	public static final CurriculumContent[] MASTER = CurriculumContent.values();
 }

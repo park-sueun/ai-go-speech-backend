@@ -46,7 +46,7 @@ public class Curriculum extends BaseTimeEntity {
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
-	private CurriculmContent content;
+	private CurriculumContent content;
 
 	@Column(nullable = false)
 	private LocalDate scheduleDate;
@@ -56,7 +56,7 @@ public class Curriculum extends BaseTimeEntity {
 	private InterviewSchedule interviewSchedule;
 
 	public static Curriculum create (
-		User user, InterviewSchedule interviewSchedule, CurriculmContent content, LocalDate scheduleDate) {
+		User user, InterviewSchedule interviewSchedule, CurriculumContent content, LocalDate scheduleDate) {
 		Curriculum curriculum = new Curriculum();
 		curriculum.uuid = UUID.randomUUID();
 		curriculum.user = user;

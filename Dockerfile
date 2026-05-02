@@ -12,8 +12,8 @@ RUN chmod +x gradlew && ./gradlew dependencies --no-daemon
 COPY src src
 RUN ./gradlew bootJar --no-daemon -x test
 
-# === 2단계: 실행 (최소 이미지) ===
-FROM eclipse-temurin:21-jre-alpine AS prod
+# === 2단계: 실행 (Playwright Chromium 포함) ===
+FROM mcr.microsoft.com/playwright/java:v1.50.0-noble
 WORKDIR /app
 COPY --from=builder /app/build/libs/*.jar app.jar
 

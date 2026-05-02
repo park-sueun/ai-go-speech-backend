@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 public record InterviewScheduleRequest(
 	@NotBlank(message = "회사명은 필수입니다.")
 	String companyName,
-	@NotNull @NotNull(message = "면접 날짜를 선택해주세요.")
+	@NotNull(message = "면접 날짜를 선택해주세요.")
 	LocalDate interviewDate
 ) {
 }

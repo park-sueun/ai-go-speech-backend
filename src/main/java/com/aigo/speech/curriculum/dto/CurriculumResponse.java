@@ -7,7 +7,7 @@ import com.aigo.speech.curriculum.entity.Curriculum;
 
 public record CurriculumResponse(
 	UUID uuid,
-	UUID JobPostingUuid,
+	UUID jobPostingUuid,
 	String content,
 	LocalDate scheduledDate,
 	boolean isPast

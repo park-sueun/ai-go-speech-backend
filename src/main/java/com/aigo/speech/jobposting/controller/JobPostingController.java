@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +22,7 @@ import com.aigo.speech.jobposting.dto.JobPostingDetailResponse;
 import com.aigo.speech.jobposting.dto.JobPostingSummaryResponse;
 import com.aigo.speech.jobposting.dto.JobPostingSubmitRequest;
 import com.aigo.speech.jobposting.dto.JobPostingSubmitResponse;
+import com.aigo.speech.jobposting.dto.JobPostingUpdateRequest;
 import com.aigo.speech.jobposting.service.JobPostingAnalyzeService;
 
 import jakarta.validation.Valid;
@@ -71,6 +73,18 @@ public class JobPostingController {
 	) {
 		UUID userUuid = UUID.fromString(authentication.getName());
 		return ResponseEntity.ok(ApiResponse.success(analyzeService.getDetail(uuid, userUuid)));
+	}
+
+	/** 회사명 수정 */
+	@PatchMapping("/{uuid}")
+	public ResponseEntity<ApiResponse<JobPostingDetailResponse>> update(
+		@PathVariable UUID uuid,
+		@RequestBody @Valid JobPostingUpdateRequest request,
+		Authentication authentication
+	) {
+		UUID userUuid = UUID.fromString(authentication.getName());
+		JobPostingDetailResponse jp = analyzeService.updateCompanyName(uuid, userUuid, request.getCompanyName());
+		return ResponseEntity.ok(ApiResponse.success(jp));
 	}
 
 	/** 채용공고 삭제 */

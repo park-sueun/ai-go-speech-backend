@@ -105,6 +105,16 @@ public class JobPostingAnalyzeService {
 	}
 
 	@Transactional
+	public JobPostingDetailResponse updateCompanyName(UUID uuid, UUID userUuid, String companyName) {
+		User user = findUser(userUuid);
+		JobPosting jp = jobPostingRepository.findByUuidAndUser(uuid, user)
+			.orElseThrow(() -> new JobPostingNotFoundException("채용공고를 찾을 수 없습니다."));
+		jp.updateCompanyName(companyName);
+
+		return JobPostingDetailResponse.from(jp);
+	}
+
+	@Transactional
 	public void delete(UUID uuid, UUID userUuid) {
 		User user = findUser(userUuid);
 		JobPosting jp = jobPostingRepository.findByUuidAndUser(uuid, user)

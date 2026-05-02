@@ -116,4 +116,8 @@ public class JobPosting extends BaseTimeEntity {
 		this.status = JobPostingStatus.FAILED;
 		this.failureReason = reason;
 	}
+
+	public void updateCompanyName(String companyName) {
+		this.companyName = companyName;
+	}
 }

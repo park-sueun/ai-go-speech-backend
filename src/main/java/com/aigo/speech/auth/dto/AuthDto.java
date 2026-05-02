@@ -1,5 +1,7 @@
 package com.aigo.speech.auth.dto;
 
+import java.util.List;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -33,6 +35,7 @@ public class AuthDto {
 			message = "특수문자가 포함되어 있습니다."
 		)
 		private String nickname;
+		private List<Long> agreedTerms;
 	}
 
 	@Getter

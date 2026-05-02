@@ -1,6 +1,10 @@
 package com.aigo.speech.auth.service;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,10 +17,15 @@ import com.aigo.speech.auth.dto.TokenRequest;
 import com.aigo.speech.auth.exception.DuplicateEmailException;
 import com.aigo.speech.auth.exception.DuplicateNicknameException;
 import com.aigo.speech.auth.exception.InvalidCredentialsException;
-import com.aigo.speech.auth.exception.PasswordMismatchException;
 import com.aigo.speech.auth.exception.InvalidTokenException;
+import com.aigo.speech.auth.exception.PasswordMismatchException;
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.auth.jwt.JwtTokenProvider;
+import com.aigo.speech.terms.entity.Terms;
+import com.aigo.speech.terms.entity.UserTermsAgreement;
+import com.aigo.speech.terms.exception.InvalidTermsAgreementException;
+import com.aigo.speech.terms.repository.TermsRepository;
+import com.aigo.speech.terms.repository.UserTermsAgreementRepository;
 import com.aigo.speech.user.entity.Profile;
 import com.aigo.speech.user.entity.Provider;
 import com.aigo.speech.user.entity.Role;
@@ -34,6 +43,8 @@ public class AuthService {
 	private final ProfileRepository profileRepository;
 	private final JwtTokenProvider jwtTokenProvider;
 	private final BCryptPasswordEncoder bCryptPasswordEncoder;
+	private final TermsRepository termsRepository;
+	private final UserTermsAgreementRepository userTermsAgreementRepository;
 
 	@Transactional
 	public void signup (SignupRequest dto) { // 회원가입
@@ -49,6 +60,8 @@ public class AuthService {
 			throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
 		}
 
+		validateRequiredTerms(dto.getAgreedTerms());
+
 		User user = userRepository.save(User.builder()
 			.email(dto.getEmail())
 			.password(bCryptPasswordEncoder.encode(dto.getPassword()))
@@ -60,6 +73,29 @@ public class AuthService {
 			.user(user)
 			.nickname(dto.getNickname())
 			.build());
+
+		if (dto.getAgreedTerms() != null && !dto.getAgreedTerms().isEmpty()) {
+			List<Terms> agreedTerms = termsRepository.findAllById(dto.getAgreedTerms());
+			List<UserTermsAgreement> agreeTerms = agreedTerms.stream()
+				.map(terms -> new UserTermsAgreement(user, terms))
+				.collect(Collectors.toList());
+
+			userTermsAgreementRepository.saveAll(agreeTerms);
+
+		}
+	}
+
+	private void validateRequiredTerms (List<Long> agreedTerms) {
+		List<Long> requiredTerms = termsRepository.findAllByIsActiveTrue().stream()
+			.filter(Terms::getRequired)
+			.map(Terms::getId)
+			.collect((Collectors.toList()));
+
+		Set<Long> agreedTermsSet = (agreedTerms == null) ? new HashSet<>() : new HashSet<>(agreedTerms);
+
+		if (!agreedTermsSet.containsAll(requiredTerms)) {
+			throw new InvalidTermsAgreementException("모든 필수 약관에 동의해야 합니다.");
+		}
 	}
 
 	@Transactional
@@ -117,5 +153,5 @@ public class AuthService {
 
 		user.updateRefreshToken(null); // 세션 만료
 	}
-	
+
 }

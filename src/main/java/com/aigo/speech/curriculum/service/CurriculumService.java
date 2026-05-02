@@ -14,6 +14,7 @@ import com.aigo.speech.curriculum.dto.CurriculumResponse;
 import com.aigo.speech.curriculum.entity.CurriculmContent;
 import com.aigo.speech.curriculum.entity.Curriculum;
 import com.aigo.speech.curriculum.entity.InterviewSchedule;
+import com.aigo.speech.curriculum.exception.UnauthorizedCurriculumException;
 import com.aigo.speech.curriculum.repository.CurriculmRepository;
 import com.aigo.speech.curriculum.repository.InterviewScheduleRepository;
 import com.aigo.speech.jobposting.entity.JobPosting;
@@ -65,7 +66,7 @@ public class CurriculumService {
 			.orElseThrow(() -> new IllegalArgumentException("해당 일정을 찾을 수 없습니다."));
 
 		if (!schedule.getUser().getUuid().equals(userUuid)) {
-			throw new IllegalArgumentException("해당 일정을 조회할 권한이 없습니다.");
+			throw new UnauthorizedCurriculumException("해당 일정을 조회할 권한이 없습니다.");
 		}
 		return curriculmRepository.findByInterviewScheduleOrderByScheduleDateAsc(schedule)
 			.stream()
@@ -74,12 +75,18 @@ public class CurriculumService {
 			.toList();
 	}
 
-	public List<CurriculumResponse> getTodayCurriculums (String userUuid) {
-		User user = findUser(userUuid);
+	public List<CurriculumResponse> getTodayCurriculums (UUID userUuid) {
+		User user = userRepository.findByUuid(userUuid)
+			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사람입니다."));
 		LocalDate today = LocalDate.now();
 
 		return curriculmRepository.findByUserIdAndScheduleDate(user.getId(), today)
 			.stream().map(CurriculumResponse::from).toList();
+	}
+
+	@Transactional
+	public void deleteAllBySchedule (InterviewSchedule schedule) {
+		curriculmRepository.deleteAllByInterviewSchedule(schedule);
 	}
 
 	private User findUser (String userUuid) {

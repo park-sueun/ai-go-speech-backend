@@ -52,4 +52,9 @@ public class InterviewSchedule extends BaseTimeEntity {
 		schedule.interviewDate = interviewDate;
 		return schedule;
 	}
+
+	public void update (String companyName, LocalDate interviewDate) {
+		this.companyName = companyName;
+		this.interviewDate = interviewDate;
+	}
 }

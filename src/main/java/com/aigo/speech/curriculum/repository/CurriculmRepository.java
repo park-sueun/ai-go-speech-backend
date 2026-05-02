@@ -17,4 +17,6 @@ public interface CurriculmRepository extends JpaRepository<Curriculum, Long> {
 	List<Curriculum> findByInterviewScheduleOrderByScheduleDateAsc (InterviewSchedule schedule);
 
 	List<Curriculum> findByUserIdAndScheduleDate (Long UserId, LocalDate scheduleDate);
+
+	void deleteAllByInterviewSchedule (InterviewSchedule schedule);
 }

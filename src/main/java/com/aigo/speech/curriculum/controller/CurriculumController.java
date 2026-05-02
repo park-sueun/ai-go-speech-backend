@@ -39,7 +39,7 @@ public class CurriculumController {
 	) {
 		UUID userUuid = UUID.fromString(authentication.getName());
 
-		List<CurriculumResponse> responses = curriculmService.getTodayCurriculums(userUuid.toString());
+		List<CurriculumResponse> responses = curriculmService.getTodayCurriculums(userUuid);
 		return ResponseEntity.ok(ApiResponse.success(responses));
 	}
 

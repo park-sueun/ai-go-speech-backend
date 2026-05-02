@@ -28,8 +28,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-      selenium:
-        condition: service_started
     networks:
       - app-network
     logging: &app-logging
@@ -53,8 +51,6 @@ services:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
-      selenium:
         condition: service_started
     networks:
       - app-network
@@ -80,12 +76,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    restart: always
-    networks:
-      - app-network
-
-  selenium:
-    image: seleniarm/standalone-chromium:latest
     restart: always
     networks:
       - app-network

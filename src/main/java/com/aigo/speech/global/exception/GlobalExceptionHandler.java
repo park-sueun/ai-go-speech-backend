@@ -6,9 +6,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
-import com.aigo.speech.interview.exception.InvalidSessionStatusException;
-import com.aigo.speech.question.exception.QuestionNotFoundException;
 import com.aigo.speech.auth.exception.DuplicateEmailException;
 import com.aigo.speech.auth.exception.DuplicateNicknameException;
 import com.aigo.speech.auth.exception.InvalidCredentialsException;
@@ -19,6 +16,8 @@ import com.aigo.speech.auth.exception.SamePasswordException;
 import com.aigo.speech.auth.exception.TokenExpiredException;
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.global.dto.ApiResponse;
+import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
+import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.jobposting.exception.InvalidUrlException;
 import com.aigo.speech.jobposting.exception.JobPostingCrawlException;
 import com.aigo.speech.jobposting.exception.JobPostingNotFoundException;
@@ -26,22 +25,23 @@ import com.aigo.speech.jobposting.exception.JobPostingParseException;
 import com.aigo.speech.jobposting.exception.UnsupportedSiteException;
 import com.aigo.speech.mail.exception.MailSendException;
 import com.aigo.speech.mail.exception.MailVerificationException;
+import com.aigo.speech.question.exception.QuestionNotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
 	@ExceptionHandler(InterviewSessionNotFoundException.class)
-	public ResponseEntity<ApiResponse<?>> handleInterviewSessionNotFound(InterviewSessionNotFoundException e) {
+	public ResponseEntity<ApiResponse<?>> handleInterviewSessionNotFound (InterviewSessionNotFoundException e) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
 	}
 
 	@ExceptionHandler(InvalidSessionStatusException.class)
-	public ResponseEntity<ApiResponse<?>> handleInvalidSessionStatus(InvalidSessionStatusException e) {
+	public ResponseEntity<ApiResponse<?>> handleInvalidSessionStatus (InvalidSessionStatusException e) {
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(e.getMessage()));
 	}
 
 	@ExceptionHandler(QuestionNotFoundException.class)
-	public ResponseEntity<ApiResponse<?>> handleQuestionNotFound(QuestionNotFoundException e) {
+	public ResponseEntity<ApiResponse<?>> handleQuestionNotFound (QuestionNotFoundException e) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
 	}
 
@@ -105,7 +105,7 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(InvalidPasswordException.class)
 	public ResponseEntity<ApiResponse<?>> handleInvalidPassword (InvalidPasswordException e) {
-		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(e.getMessage()));
+		return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
 	}
 
 	@ExceptionHandler(SamePasswordException.class)

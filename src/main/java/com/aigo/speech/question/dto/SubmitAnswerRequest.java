@@ -1,8 +1,10 @@
 package com.aigo.speech.question.dto;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
-import jakarta.validation.constraints.NotBlank;
+import com.aigo.speech.global.dto.TimePeriod;
+
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -10,22 +12,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class SubmitAnswerRequest {
 
-	@NotBlank(message = "오디오 URL을 입력해주세요.")
-	private String audioUrl;
+	@NotNull(message = "총 경과 시간을 입력해주세요.")
+	private Integer totalElapsedMs;
 
-	private String sttText;
+	private String transcript;
 
-	private Integer duration;
+	private List<String> fillerWords;
 
-	private String silenceIntervalsJson;
+	private List<TimePeriod> silencePeriods;
 
-	private LocalDateTime answerStartedAt;
-
-	private LocalDateTime answerEndedAt;
-
-	private Integer silenceCount;
-
-	private Integer totalSilenceDuration;
-
-	private Integer answerDuration;
+	private List<TimePeriod> speechPeriods;
 }

@@ -1,5 +1,6 @@
 package com.aigo.speech.answer.service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -12,6 +13,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import com.aigo.speech.answer.dto.AnswerSubmittedEvent;
 import com.aigo.speech.answer.entity.InterviewAnswer;
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
+import com.aigo.speech.global.dto.TimePeriod;
 import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.entity.InterviewStatus;
@@ -39,7 +41,7 @@ public class InterviewAnswerService {
 	private final InterviewSessionService sessionService;
 
 	@Transactional
-	public SubmitAnswerResponse submitAnswer (String userUuidStr, UUID questionUuid, SubmitAnswerRequest request) {
+	public SubmitAnswerResponse submitAnswer(String userUuidStr, UUID questionUuid, SubmitAnswerRequest request) {
 		InterviewQuestion question = questionRepository.findByUuid(questionUuid)
 			.orElseThrow(() -> new QuestionNotFoundException("질문을 찾을 수 없습니다."));
 
@@ -56,22 +58,25 @@ public class InterviewAnswerService {
 
 		InterviewAnswer answer = answerRepository.save(new InterviewAnswer(
 			question,
-			request.getAudioUrl(),
-			request.getSttText(),
-			request.getDuration(),
-			request.getSilenceIntervalsJson(),
-			request.getAnswerStartedAt(),
-			request.getAnswerEndedAt()
+			request.getTotalElapsedMs(),
+			request.getTranscript(),
+			request.getFillerWords(),
+			request.getSilencePeriods(),
+			request.getSpeechPeriods()
 		));
 
 		log.info("[Answer] 답변 제출 완료. sessionUuid={}, questionUuid={}", session.getUuid(), question.getUuid());
 
+		int silenceCount = request.getSilencePeriods() == null ? 0 : request.getSilencePeriods().size();
+		int totalSilenceDuration = sumDurations(request.getSilencePeriods());
+		int answerDuration = sumDurations(request.getSpeechPeriods());
+
 		// 트랜잭션 커밋 후 AnswerScoreProcessor가 @TransactionalEventListener(AFTER_COMMIT)로 수신
 		eventPublisher.publishEvent(new AnswerSubmittedEvent(
 			answer.getId(),
-			request.getSilenceCount(),
-			request.getTotalSilenceDuration(),
-			request.getAnswerDuration()
+			silenceCount,
+			totalSilenceDuration,
+			answerDuration
 		));
 
 		long totalQuestions = questionRepository.countBySession(session);
@@ -81,7 +86,7 @@ public class InterviewAnswerService {
 			UUID sessionUuid = session.getUuid();
 			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 				@Override
-				public void afterCommit () {
+				public void afterCommit() {
 					sseEmitterService.sendEvent(
 						sessionUuid, "ALL_ANSWERS_SUBMITTED",
 						Map.of("sessionUuid", sessionUuid.toString())
@@ -93,5 +98,10 @@ public class InterviewAnswerService {
 		}
 
 		return new SubmitAnswerResponse(answer.getUuid());
+	}
+
+	private int sumDurations(List<TimePeriod> periods) {
+		if (periods == null) return 0;
+		return periods.stream().mapToInt(p -> p.endMs() - p.startMs()).sum();
 	}
 }

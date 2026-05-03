@@ -1,7 +1,9 @@
 package com.aigo.speech.answer.service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.interview.service.InterviewSessionService;
 import com.aigo.speech.question.dto.SubmitAnswerRequest;
+import com.aigo.speech.question.dto.SubmitAnswerRequest.TimePeriod;
 import com.aigo.speech.question.dto.SubmitAnswerResponse;
 import com.aigo.speech.question.entity.InterviewQuestion;
 import com.aigo.speech.question.exception.QuestionNotFoundException;
@@ -56,22 +59,25 @@ public class InterviewAnswerService {
 
 		InterviewAnswer answer = answerRepository.save(new InterviewAnswer(
 			question,
-			request.getAudioUrl(),
-			request.getSttText(),
-			request.getDuration(),
-			request.getSilenceIntervalsJson(),
-			request.getAnswerStartedAt(),
-			request.getAnswerEndedAt()
+			request.getTotalElapsedMs(),
+			request.getTranscript(),
+			request.getFillerWords(),
+			serializePeriods(request.getSilencePeriods()),
+			serializePeriods(request.getSpeechPeriods())
 		));
 
 		log.info("[Answer] 답변 제출 완료. sessionUuid={}, questionUuid={}", session.getUuid(), question.getUuid());
 
+		int silenceCount = request.getSilencePeriods() == null ? 0 : request.getSilencePeriods().size();
+		int totalSilenceDuration = sumDurations(request.getSilencePeriods());
+		int answerDuration = sumDurations(request.getSpeechPeriods());
+
 		// 트랜잭션 커밋 후 AnswerScoreProcessor가 @TransactionalEventListener(AFTER_COMMIT)로 수신
 		eventPublisher.publishEvent(new AnswerSubmittedEvent(
 			answer.getId(),
-			request.getSilenceCount(),
-			request.getTotalSilenceDuration(),
-			request.getAnswerDuration()
+			silenceCount,
+			totalSilenceDuration,
+			answerDuration
 		));
 
 		long totalQuestions = questionRepository.countBySession(session);
@@ -93,5 +99,17 @@ public class InterviewAnswerService {
 		}
 
 		return new SubmitAnswerResponse(answer.getUuid());
+	}
+
+	private String serializePeriods(List<TimePeriod> periods) {
+		if (periods == null || periods.isEmpty()) return null;
+		return periods.stream()
+			.map(p -> "{\"startMs\":" + p.startMs() + ",\"endMs\":" + p.endMs() + "}")
+			.collect(Collectors.joining(",", "[", "]"));
+	}
+
+	private int sumDurations(List<TimePeriod> periods) {
+		if (periods == null) return 0;
+		return periods.stream().mapToInt(p -> p.endMs() - p.startMs()).sum();
 	}
 }

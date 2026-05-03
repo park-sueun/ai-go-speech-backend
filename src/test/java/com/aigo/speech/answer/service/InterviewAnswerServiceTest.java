@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,6 +29,7 @@ import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.interview.service.InterviewSessionService;
 import com.aigo.speech.question.dto.SubmitAnswerRequest;
+import com.aigo.speech.question.dto.SubmitAnswerRequest.TimePeriod;
 import com.aigo.speech.question.dto.SubmitAnswerResponse;
 import com.aigo.speech.question.entity.InterviewQuestion;
 import com.aigo.speech.question.exception.QuestionNotFoundException;
@@ -175,7 +177,7 @@ class InterviewAnswerServiceTest {
 
 	private InterviewAnswer savedAnswer () {
 		InterviewAnswer answer = new InterviewAnswer(
-			question, "https://storage.com/audio.wav", "안녕하세요", 90, null, null, null);
+			question, 60000, "안녕하세요", List.of("음", "어", "그"), null, null);
 		ReflectionTestUtils.setField(answer, "id", 1L);
 		ReflectionTestUtils.setField(answer, "uuid", UUID.randomUUID());
 		return answer;
@@ -183,12 +185,13 @@ class InterviewAnswerServiceTest {
 
 	private SubmitAnswerRequest buildRequest () {
 		SubmitAnswerRequest request = new SubmitAnswerRequest();
-		ReflectionTestUtils.setField(request, "audioUrl", "https://storage.com/audio.wav");
-		ReflectionTestUtils.setField(request, "sttText", "안녕하세요");
-		ReflectionTestUtils.setField(request, "duration", 90);
-		ReflectionTestUtils.setField(request, "silenceCount", 2);
-		ReflectionTestUtils.setField(request, "totalSilenceDuration", 3000);
-		ReflectionTestUtils.setField(request, "answerDuration", 90000);
+		ReflectionTestUtils.setField(request, "totalElapsedMs", 60000);
+		ReflectionTestUtils.setField(request, "transcript", "안녕하세요");
+		ReflectionTestUtils.setField(request, "fillerWords", List.of("음", "어", "그"));
+		ReflectionTestUtils.setField(request, "silencePeriods",
+			List.of(new TimePeriod(1000, 3000), new TimePeriod(5000, 6000)));
+		ReflectionTestUtils.setField(request, "speechPeriods",
+			List.of(new TimePeriod(0, 1000), new TimePeriod(3000, 5000)));
 		return request;
 	}
 }

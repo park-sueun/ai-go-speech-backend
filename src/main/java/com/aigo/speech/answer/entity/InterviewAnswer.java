@@ -1,14 +1,18 @@
 package com.aigo.speech.answer.entity;
 
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.aigo.speech.global.entity.BaseTimeEntity;
+import com.aigo.speech.jobposting.entity.converter.StringListConverter;
 import com.aigo.speech.question.entity.InterviewQuestion;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
@@ -40,33 +44,41 @@ public class InterviewAnswer extends BaseTimeEntity {
 	@JoinColumn(name = "question_id", nullable = false)
 	private InterviewQuestion question;
 
-	@Column(name = "audio_url", nullable = false, length = 1024)
-	private String audioUrl;
+	@Column(name = "total_elapsed_ms")
+	private Integer totalElapsedMs;
 
-	@Column(name = "stt_text", columnDefinition = "TEXT")
-	private String sttText;
+	@Column(columnDefinition = "TEXT")
+	private String transcript;
 
-	private Integer duration;
+	@Convert(converter = StringListConverter.class)
+	@Column(name = "filler_words", columnDefinition = "TEXT")
+	private List<String> fillerWords;
 
-	@Column(name = "silence_intervals_json", columnDefinition = "TEXT")
-	private String silenceIntervalsJson;
+	@Column(name = "silence_periods_json", columnDefinition = "TEXT")
+	private String silencePeriodsJson;
 
-	@Column(name = "answer_started_at")
-	private LocalDateTime answerStartedAt;
+	@Column(name = "speech_periods_json", columnDefinition = "TEXT")
+	private String speechPeriodsJson;
 
-	@Column(name = "answer_ended_at")
-	private LocalDateTime answerEndedAt;
-
-	public InterviewAnswer(InterviewQuestion question, String audioUrl, String sttText,
-		Integer duration, String silenceIntervalsJson,
-		LocalDateTime answerStartedAt, LocalDateTime answerEndedAt) {
+	public InterviewAnswer(InterviewQuestion question, Integer totalElapsedMs, String transcript,
+		List<String> fillerWords, String silencePeriodsJson, String speechPeriodsJson) {
 		this.uuid = UUID.randomUUID();
 		this.question = question;
-		this.audioUrl = audioUrl;
-		this.sttText = sttText;
-		this.duration = duration;
-		this.silenceIntervalsJson = silenceIntervalsJson;
-		this.answerStartedAt = answerStartedAt;
-		this.answerEndedAt = answerEndedAt;
+		this.totalElapsedMs = totalElapsedMs;
+		this.transcript = transcript;
+		this.fillerWords = fillerWords;
+		this.silencePeriodsJson = silencePeriodsJson;
+		this.speechPeriodsJson = speechPeriodsJson;
 	}
+
+	public FillerStats getFillerStats() {
+		if (fillerWords == null || fillerWords.isEmpty()) {
+			return new FillerStats(0, Map.of());
+		}
+		Map<String, Long> counts = fillerWords.stream()
+			.collect(Collectors.groupingBy(w -> w, Collectors.counting()));
+		return new FillerStats(fillerWords.size(), counts);
+	}
+
+	public record FillerStats(int total, Map<String, Long> counts) {}
 }

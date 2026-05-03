@@ -24,12 +24,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import com.aigo.speech.answer.dto.AnswerSubmittedEvent;
 import com.aigo.speech.answer.entity.InterviewAnswer;
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
+import com.aigo.speech.global.dto.TimePeriod;
 import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.interview.service.InterviewSessionService;
 import com.aigo.speech.question.dto.SubmitAnswerRequest;
-import com.aigo.speech.question.dto.SubmitAnswerRequest.TimePeriod;
 import com.aigo.speech.question.dto.SubmitAnswerResponse;
 import com.aigo.speech.question.entity.InterviewQuestion;
 import com.aigo.speech.question.exception.QuestionNotFoundException;
@@ -62,7 +62,7 @@ class InterviewAnswerServiceTest {
 	private InterviewQuestion question;
 
 	@BeforeEach
-	void setUp () {
+	void setUp() {
 		user = User.builder().email("test@example.com").build();
 		session = new InterviewSession(user, null, false, null);
 		session.start();
@@ -76,7 +76,7 @@ class InterviewAnswerServiceTest {
 
 	@Test
 	@DisplayName("정상 답변 제출 시 답변이 저장되고 AnswerSubmittedEvent가 발행된다")
-	void submitAnswer_savesAnswerAndPublishesEvent () {
+	void submitAnswer_savesAnswerAndPublishesEvent() {
 		InterviewAnswer savedAnswer = savedAnswer();
 
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.of(question));
@@ -95,7 +95,7 @@ class InterviewAnswerServiceTest {
 
 	@Test
 	@DisplayName("마지막 답변 제출 시 ALL_ANSWERS_SUBMITTED SSE 이벤트가 전송된다")
-	void submitAnswer_whenLastAnswer_sendsAllAnswersSubmittedEvent () {
+	void submitAnswer_whenLastAnswer_sendsAllAnswersSubmittedEvent() {
 		InterviewAnswer savedAnswer = savedAnswer();
 
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.of(question));
@@ -123,7 +123,7 @@ class InterviewAnswerServiceTest {
 
 	@Test
 	@DisplayName("READY 상태 세션에 답변 제출 시 예외가 발생한다")
-	void submitAnswer_whenSessionReady_throwsException () {
+	void submitAnswer_whenSessionReady_throwsException() {
 		InterviewSession readySession = new InterviewSession(user, null, false, null);
 		InterviewQuestion readyQuestion = new InterviewQuestion(readySession, "질문", 1);
 		ReflectionTestUtils.setField(readyQuestion, "uuid", QUESTION_UUID);
@@ -138,7 +138,7 @@ class InterviewAnswerServiceTest {
 
 	@Test
 	@DisplayName("COMPLETED 상태 세션에 답변 제출 시 예외가 발생한다")
-	void submitAnswer_whenSessionCompleted_throwsException () {
+	void submitAnswer_whenSessionCompleted_throwsException() {
 		session.complete();
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.of(question));
 
@@ -150,7 +150,7 @@ class InterviewAnswerServiceTest {
 
 	@Test
 	@DisplayName("존재하지 않는 질문 UUID로 답변 제출 시 예외가 발생한다")
-	void submitAnswer_withUnknownQuestion_throwsException () {
+	void submitAnswer_withUnknownQuestion_throwsException() {
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.empty());
 
 		assertThatThrownBy(() -> answerService.submitAnswer(USER_UUID_STR, QUESTION_UUID, buildRequest()))
@@ -162,7 +162,7 @@ class InterviewAnswerServiceTest {
 
 	@Test
 	@DisplayName("이미 답변이 제출된 질문에 재제출 시 예외가 발생한다")
-	void submitAnswer_whenAlreadyAnswered_throwsException () {
+	void submitAnswer_whenAlreadyAnswered_throwsException() {
 		given(questionRepository.findByUuid(QUESTION_UUID)).willReturn(Optional.of(question));
 		given(answerRepository.existsByQuestion(question)).willReturn(true);
 
@@ -175,15 +175,16 @@ class InterviewAnswerServiceTest {
 
 	// ======================== helpers ========================
 
-	private InterviewAnswer savedAnswer () {
+	private InterviewAnswer savedAnswer() {
 		InterviewAnswer answer = new InterviewAnswer(
-			question, 60000, "안녕하세요", List.of("음", "어", "그"), null, null);
+			question, 60000, "안녕하세요", List.of("음", "어", "그"),
+			List.of(new TimePeriod(1000, 3000)), List.of(new TimePeriod(0, 1000)));
 		ReflectionTestUtils.setField(answer, "id", 1L);
 		ReflectionTestUtils.setField(answer, "uuid", UUID.randomUUID());
 		return answer;
 	}
 
-	private SubmitAnswerRequest buildRequest () {
+	private SubmitAnswerRequest buildRequest() {
 		SubmitAnswerRequest request = new SubmitAnswerRequest();
 		ReflectionTestUtils.setField(request, "totalElapsedMs", 60000);
 		ReflectionTestUtils.setField(request, "transcript", "안녕하세요");

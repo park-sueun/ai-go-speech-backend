@@ -7,7 +7,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.aigo.speech.global.dto.TimePeriod;
 import com.aigo.speech.global.entity.BaseTimeEntity;
+import com.aigo.speech.global.entity.converter.TimePeriodListConverter;
 import com.aigo.speech.jobposting.entity.converter.StringListConverter;
 import com.aigo.speech.question.entity.InterviewQuestion;
 
@@ -54,21 +56,23 @@ public class InterviewAnswer extends BaseTimeEntity {
 	@Column(name = "filler_words", columnDefinition = "TEXT")
 	private List<String> fillerWords;
 
+	@Convert(converter = TimePeriodListConverter.class)
 	@Column(name = "silence_periods_json", columnDefinition = "TEXT")
-	private String silencePeriodsJson;
+	private List<TimePeriod> silencePeriods;
 
+	@Convert(converter = TimePeriodListConverter.class)
 	@Column(name = "speech_periods_json", columnDefinition = "TEXT")
-	private String speechPeriodsJson;
+	private List<TimePeriod> speechPeriods;
 
 	public InterviewAnswer(InterviewQuestion question, Integer totalElapsedMs, String transcript,
-		List<String> fillerWords, String silencePeriodsJson, String speechPeriodsJson) {
+		List<String> fillerWords, List<TimePeriod> silencePeriods, List<TimePeriod> speechPeriods) {
 		this.uuid = UUID.randomUUID();
 		this.question = question;
 		this.totalElapsedMs = totalElapsedMs;
 		this.transcript = transcript;
 		this.fillerWords = fillerWords;
-		this.silencePeriodsJson = silencePeriodsJson;
-		this.speechPeriodsJson = speechPeriodsJson;
+		this.silencePeriods = silencePeriods;
+		this.speechPeriods = speechPeriods;
 	}
 
 	public FillerStats getFillerStats() {

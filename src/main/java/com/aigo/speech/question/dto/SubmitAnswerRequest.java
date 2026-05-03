@@ -2,6 +2,8 @@ package com.aigo.speech.question.dto;
 
 import java.util.List;
 
+import com.aigo.speech.global.dto.TimePeriod;
+
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,6 +22,4 @@ public class SubmitAnswerRequest {
 	private List<TimePeriod> silencePeriods;
 
 	private List<TimePeriod> speechPeriods;
-
-	public record TimePeriod(int startMs, int endMs) {}
 }

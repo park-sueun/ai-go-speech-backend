@@ -3,7 +3,6 @@ package com.aigo.speech.answer.service;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -14,13 +13,13 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import com.aigo.speech.answer.dto.AnswerSubmittedEvent;
 import com.aigo.speech.answer.entity.InterviewAnswer;
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
+import com.aigo.speech.global.dto.TimePeriod;
 import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.interview.service.InterviewSessionService;
 import com.aigo.speech.question.dto.SubmitAnswerRequest;
-import com.aigo.speech.question.dto.SubmitAnswerRequest.TimePeriod;
 import com.aigo.speech.question.dto.SubmitAnswerResponse;
 import com.aigo.speech.question.entity.InterviewQuestion;
 import com.aigo.speech.question.exception.QuestionNotFoundException;
@@ -42,7 +41,7 @@ public class InterviewAnswerService {
 	private final InterviewSessionService sessionService;
 
 	@Transactional
-	public SubmitAnswerResponse submitAnswer (String userUuidStr, UUID questionUuid, SubmitAnswerRequest request) {
+	public SubmitAnswerResponse submitAnswer(String userUuidStr, UUID questionUuid, SubmitAnswerRequest request) {
 		InterviewQuestion question = questionRepository.findByUuid(questionUuid)
 			.orElseThrow(() -> new QuestionNotFoundException("질문을 찾을 수 없습니다."));
 
@@ -62,8 +61,8 @@ public class InterviewAnswerService {
 			request.getTotalElapsedMs(),
 			request.getTranscript(),
 			request.getFillerWords(),
-			serializePeriods(request.getSilencePeriods()),
-			serializePeriods(request.getSpeechPeriods())
+			request.getSilencePeriods(),
+			request.getSpeechPeriods()
 		));
 
 		log.info("[Answer] 답변 제출 완료. sessionUuid={}, questionUuid={}", session.getUuid(), question.getUuid());
@@ -87,7 +86,7 @@ public class InterviewAnswerService {
 			UUID sessionUuid = session.getUuid();
 			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 				@Override
-				public void afterCommit () {
+				public void afterCommit() {
 					sseEmitterService.sendEvent(
 						sessionUuid, "ALL_ANSWERS_SUBMITTED",
 						Map.of("sessionUuid", sessionUuid.toString())
@@ -99,13 +98,6 @@ public class InterviewAnswerService {
 		}
 
 		return new SubmitAnswerResponse(answer.getUuid());
-	}
-
-	private String serializePeriods(List<TimePeriod> periods) {
-		if (periods == null || periods.isEmpty()) return null;
-		return periods.stream()
-			.map(p -> "{\"startMs\":" + p.startMs() + ",\"endMs\":" + p.endMs() + "}")
-			.collect(Collectors.joining(",", "[", "]"));
 	}
 
 	private int sumDurations(List<TimePeriod> periods) {

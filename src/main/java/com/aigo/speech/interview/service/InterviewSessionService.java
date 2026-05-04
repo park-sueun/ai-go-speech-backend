@@ -10,7 +10,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
-import com.aigo.speech.answer.service.AnswerAnalysisService;
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
@@ -44,7 +43,6 @@ public class InterviewSessionService {
 	private final JobPostingRepository jobPostingRepository;
 	private final SseEmitterService sseEmitterService;
 	private final InterviewQuestionService questionService;
-	private final AnswerAnalysisService sessionAnalysisService;
 
 	@Transactional
 	public InterviewSessionResponse createSession (String userUuidStr, CreateSessionRequest request) {
@@ -110,14 +108,6 @@ public class InterviewSessionService {
 		}
 
 		session.complete();
-
-		Long sessionId = session.getId();
-		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-			@Override
-			public void afterCommit () {
-				sessionAnalysisService.analyzeSessionAsync(sessionId);
-			}
-		});
 
 		return InterviewSessionResponse.from(session, null);
 	}

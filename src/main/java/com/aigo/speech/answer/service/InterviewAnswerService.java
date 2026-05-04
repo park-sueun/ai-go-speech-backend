@@ -41,7 +41,7 @@ public class InterviewAnswerService {
 	private final InterviewSessionService sessionService;
 
 	@Transactional
-	public SubmitAnswerResponse submitAnswer(String userUuidStr, UUID questionUuid, SubmitAnswerRequest request) {
+	public SubmitAnswerResponse submitAnswer (String userUuidStr, UUID questionUuid, SubmitAnswerRequest request) {
 		InterviewQuestion question = questionRepository.findByUuid(questionUuid)
 			.orElseThrow(() -> new QuestionNotFoundException("질문을 찾을 수 없습니다."));
 
@@ -69,14 +69,12 @@ public class InterviewAnswerService {
 
 		int silenceCount = request.getSilencePeriods() == null ? 0 : request.getSilencePeriods().size();
 		int totalSilenceDuration = sumDurations(request.getSilencePeriods());
-		int answerDuration = sumDurations(request.getSpeechPeriods());
 
-		// 트랜잭션 커밋 후 AnswerScoreProcessor가 @TransactionalEventListener(AFTER_COMMIT)로 수신
+		// 트랜잭션 커밋 후 AnswerAnalysisProcessor가 @TransactionalEventListener(AFTER_COMMIT)로 수신
 		eventPublisher.publishEvent(new AnswerSubmittedEvent(
 			answer.getId(),
 			silenceCount,
-			totalSilenceDuration,
-			answerDuration
+			totalSilenceDuration
 		));
 
 		long totalQuestions = questionRepository.countBySession(session);
@@ -86,7 +84,7 @@ public class InterviewAnswerService {
 			UUID sessionUuid = session.getUuid();
 			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 				@Override
-				public void afterCommit() {
+				public void afterCommit () {
 					sseEmitterService.sendEvent(
 						sessionUuid, "ALL_ANSWERS_SUBMITTED",
 						Map.of("sessionUuid", sessionUuid.toString())
@@ -100,8 +98,9 @@ public class InterviewAnswerService {
 		return new SubmitAnswerResponse(answer.getUuid());
 	}
 
-	private int sumDurations(List<TimePeriod> periods) {
-		if (periods == null) return 0;
+	private int sumDurations (List<TimePeriod> periods) {
+		if (periods == null)
+			return 0;
 		return periods.stream().mapToInt(p -> p.endMs() - p.startMs()).sum();
 	}
 }

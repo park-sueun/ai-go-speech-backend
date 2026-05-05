@@ -1,7 +1,9 @@
 package com.aigo.speech.terms.entity;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
+import com.aigo.speech.global.entity.BaseTimeEntity;
 import com.aigo.speech.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -21,10 +23,14 @@ import lombok.NoArgsConstructor;
 @Table(name = "USER_TERMS_AGREEMENT")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserTermsAgreement {
+public class UserTermsAgreement extends BaseTimeEntity {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
+
+	@Column(unique = true, nullable = false, updatable = false)
+	private UUID uuid;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "terms_id", nullable = false)
@@ -38,8 +44,8 @@ public class UserTermsAgreement {
 	private LocalDateTime agreedAt = LocalDateTime.now();
 
 	public UserTermsAgreement (User user, Terms terms) {
+		this.uuid = UUID.randomUUID();
 		this.user = user;
 		this.terms = terms;
 	}
-
 }

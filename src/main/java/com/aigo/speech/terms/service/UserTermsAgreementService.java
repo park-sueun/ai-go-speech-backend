@@ -1,6 +1,7 @@
 package com.aigo.speech.terms.service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -21,8 +22,8 @@ public class UserTermsAgreementService {
 	private final UserTermsAgreementRepository userTermsAgreementRepository;
 	private final UserRepository userRepository;
 
-	public List<UserAgreementResponse> getUserAgreements (Long userId) {
-		User user = userRepository.findById(userId)
+	public List<UserAgreementResponse> getUserAgreements (String userUuidStr) {
+		User user = userRepository.findByUuid(UUID.fromString(userUuidStr))
 			.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
 		return userTermsAgreementRepository.findAllByUser(user).stream()

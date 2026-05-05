@@ -26,6 +26,7 @@ import com.aigo.speech.jobposting.exception.UnsupportedSiteException;
 import com.aigo.speech.mail.exception.MailSendException;
 import com.aigo.speech.mail.exception.MailVerificationException;
 import com.aigo.speech.question.exception.QuestionNotFoundException;
+import com.aigo.speech.terms.exception.InvalidTermsAgreementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -110,6 +111,16 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(SamePasswordException.class)
 	public ResponseEntity<ApiResponse<?>> handleSamePassword (SamePasswordException e) {
+		return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(InvalidTermsAgreementException.class)
+	public ResponseEntity<ApiResponse<?>> handleInvalidTermsAgreement (InvalidTermsAgreementException e) {
+		return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<ApiResponse<?>> handleIllegalArgument (IllegalArgumentException e) {
 		return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
 	}
 

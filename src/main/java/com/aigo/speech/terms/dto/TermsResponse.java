@@ -12,7 +12,6 @@ import lombok.Getter;
 @Getter
 @Builder
 public class TermsResponse {
-	private Long id;
 	private UUID uuid;
 	private TermsType type;
 	private String title;
@@ -24,7 +23,6 @@ public class TermsResponse {
 
 	public static TermsResponse from (Terms terms) {
 		return TermsResponse.builder()
-			.id(terms.getId())
 			.uuid(terms.getUuid())
 			.type(terms.getType())
 			.title(terms.getTitle())

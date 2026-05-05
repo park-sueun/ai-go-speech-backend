@@ -75,7 +75,7 @@ public class AuthService {
 			.build());
 
 		if (dto.getAgreedTerms() != null && !dto.getAgreedTerms().isEmpty()) {
-			List<Terms> agreedTerms = termsRepository.findAllById(dto.getAgreedTerms());
+			List<Terms> agreedTerms = termsRepository.findAllByUuidIn(dto.getAgreedTerms());
 			List<UserTermsAgreement> agreeTerms = agreedTerms.stream()
 				.map(terms -> new UserTermsAgreement(user, terms))
 				.collect(Collectors.toList());
@@ -85,13 +85,13 @@ public class AuthService {
 		}
 	}
 
-	private void validateRequiredTerms (List<Long> agreedTerms) {
-		List<Long> requiredTerms = termsRepository.findAllByIsActiveTrue().stream()
+	private void validateRequiredTerms (List<UUID> agreedTerms) {
+		List<UUID> requiredTerms = termsRepository.findAllByIsActiveTrue().stream()
 			.filter(Terms::getRequired)
-			.map(Terms::getId)
+			.map(Terms::getUuid)
 			.collect((Collectors.toList()));
 
-		Set<Long> agreedTermsSet = (agreedTerms == null) ? new HashSet<>() : new HashSet<>(agreedTerms);
+		Set<UUID> agreedTermsSet = (agreedTerms == null) ? new HashSet<>() : new HashSet<>(agreedTerms);
 
 		if (!agreedTermsSet.containsAll(requiredTerms)) {
 			throw new InvalidTermsAgreementException("모든 필수 약관에 동의해야 합니다.");

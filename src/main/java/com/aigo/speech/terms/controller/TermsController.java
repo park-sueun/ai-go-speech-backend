@@ -1,6 +1,7 @@
 package com.aigo.speech.terms.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,10 +23,11 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/terms")
 @RequiredArgsConstructor
 public class TermsController {
+
 	private final TermsService termsService;
 
 	@PostMapping
-	public ResponseEntity<Long> create (@RequestBody TermsRequest dto) {
+	public ResponseEntity<UUID> create (@RequestBody TermsRequest dto) {
 		return ResponseEntity.ok(termsService.createTerms(dto));
 	}
 
@@ -34,20 +36,20 @@ public class TermsController {
 		return ResponseEntity.ok(termsService.getAllTerms());
 	}
 
-	@GetMapping("/{id}")
-	public ResponseEntity<TermsResponse> detail (@PathVariable Long id) {
-		return ResponseEntity.ok(termsService.getTerms(id));
+	@GetMapping("/{uuid}")
+	public ResponseEntity<TermsResponse> detail (@PathVariable UUID uuid) {
+		return ResponseEntity.ok(termsService.getTerms(uuid));
 	}
 
-	@PutMapping("/{id}")
-	public ResponseEntity<Void> update (@PathVariable Long id, @RequestBody TermsRequest dto) {
-		termsService.updateTerms(id, dto);
+	@PutMapping("/{uuid}")
+	public ResponseEntity<Void> update (@PathVariable UUID uuid, @RequestBody TermsRequest dto) {
+		termsService.updateTerms(uuid, dto);
 		return ResponseEntity.ok().build();
 	}
 
-	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> delete (@PathVariable Long id) {
-		termsService.deleteTerms(id);
+	@DeleteMapping("/{uuid}")
+	public ResponseEntity<Void> delete (@PathVariable UUID uuid) {
+		termsService.deleteTerms(uuid);
 		return ResponseEntity.noContent().build();
 	}
 }

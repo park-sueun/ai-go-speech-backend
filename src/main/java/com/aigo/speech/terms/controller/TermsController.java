@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.aigo.speech.terms.dto.TermsRequest;
@@ -32,8 +33,10 @@ public class TermsController {
 	}
 
 	@GetMapping
-	public ResponseEntity<List<TermsResponse>> list () {
-		return ResponseEntity.ok(termsService.getAllTerms());
+	public ResponseEntity<List<TermsResponse>> list (
+		@RequestParam(required = false) Boolean isActive
+	) {
+		return ResponseEntity.ok(termsService.getAllTerms(isActive));
 	}
 
 	@GetMapping("/{uuid}")

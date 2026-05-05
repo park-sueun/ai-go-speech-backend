@@ -26,8 +26,11 @@ public class TermsService {
 		return termsRepository.save(dto.toEntity()).getUuid();
 	}
 
-	public List<TermsResponse> getAllTerms () {
-		return termsRepository.findAll().stream()
+	public List<TermsResponse> getAllTerms (Boolean isActive) {
+		List<Terms> terms = Boolean.TRUE.equals(isActive)
+			? termsRepository.findAllByIsActiveTrue()
+			: termsRepository.findAll();
+		return terms.stream()
 			.map(TermsResponse::from)
 			.collect(Collectors.toList());
 	}

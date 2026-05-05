@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.aigo.speech.ai.dto.AiPromptRequest;
@@ -68,7 +69,7 @@ public class AnswerAnalysisService {
 	 * silenceCount/totalSilenceDuration은 이벤트에서 전달받은 값을 함께 보관.
 	 */
 	@Transactional(readOnly = true)
-	public AnswerData loadAnswerData(Long answerId, Integer silenceCount, Integer totalSilenceDuration) {
+	public AnswerData loadAnswerData (Long answerId, Integer silenceCount, Integer totalSilenceDuration) {
 		InterviewAnswer answer = answerRepository.findById(answerId)
 			.orElseThrow(() -> new IllegalStateException("답변을 찾을 수 없습니다: " + answerId));
 		InterviewQuestion question = answer.getQuestion();
@@ -80,7 +81,7 @@ public class AnswerAnalysisService {
 	/**
 	 * 2단계: AI 호출 — 트랜잭션 없음. DB 커넥션 비점유 상태에서 외부 I/O 수행.
 	 */
-	public AiAnalysisResult performAiAnalysis(AnswerData data) {
+	public AiAnalysisResult performAiAnalysis (AnswerData data) {
 		try {
 			AiPromptRequest request = AiPromptRequest.of(
 				PromptTemplate.ANSWER_ANALYSIS_V1.getContent(),
@@ -96,10 +97,11 @@ public class AnswerAnalysisService {
 			);
 			AiResponse response = aiService.complete(request);
 			Map<String, Object> parsed = LENIENT_MAPPER.readValue(
-				response.content(), new TypeReference<Map<String, Object>>() {}
+				response.content(), new TypeReference<Map<String, Object>>() {
+				}
 			);
-			String aiReview = (String) parsed.get("aiReview");
-			int logicScore = ((Number) parsed.get("logicScore")).intValue();
+			String aiReview = (String)parsed.get("aiReview");
+			int logicScore = ((Number)parsed.get("logicScore")).intValue();
 			return new AiAnalysisResult(aiReview, logicScore);
 		} catch (Exception e) {
 			log.error("[AnswerAnalysis] AI 분석 실패. answerId={}, error={}", data.answer().getId(), e.getMessage());
@@ -112,10 +114,10 @@ public class AnswerAnalysisService {
 	 * 해당 세션의 마지막 분석이면 sessionId 반환, 아니면 null 반환.
 	 */
 	@Transactional
-	public Long saveAnalysisResult(AnswerData data, AiAnalysisResult aiResult) {
+	public Long saveAnalysisResult (AnswerData data, AiAnalysisResult aiResult) {
 		int silenceScore = calcSilenceScore(data.totalSilenceDuration(), data.silenceCount());
 		int fillerScore = calcFillerScore(data.fillerWordCounts());
-		int totalScore = (int) Math.round((silenceScore + fillerScore + aiResult.logicScore()) / 3.0);
+		int totalScore = (int)Math.round((silenceScore + fillerScore + aiResult.logicScore()) / 3.0);
 
 		analysisRepository.save(
 			new AnswerAnalysis(
@@ -139,7 +141,8 @@ public class AnswerAnalysisService {
 	 * 비동기 리포트 생성. @Transactional 없음 — self-injection으로 각 단계가 개별 트랜잭션 관리.
 	 */
 	@Async("answerExecutor")
-	public void generateReportAsync(Long sessionId) {
+	@Transactional(propagation = Propagation.NOT_SUPPORTED) // 오케스트레이션 메서드: 트랜잭션 없이 실행 (DB 작업은 하위 메서드에서 처리)
+	public void generateReportAsync (Long sessionId) {
 		SessionReportContext ctx = self.loadSessionReportContext(sessionId);
 		if (ctx == null) {
 			log.info("[SessionReport] 이미 처리 중이거나 완료된 세션. sessionId={}", sessionId);
@@ -152,8 +155,10 @@ public class AnswerAnalysisService {
 			self.saveInterviewReport(sessionId, ctx, response);
 
 			log.info("[SessionReport] 리포트 생성 완료. sessionId={}", sessionId);
-			sseEmitterService.sendEvent(sessionUuid, "SESSION_ANALYSIS_DONE",
-				Map.of("sessionUuid", sessionUuid.toString()));
+			sseEmitterService.sendEvent(
+				sessionUuid, "SESSION_ANALYSIS_DONE",
+				Map.of("sessionUuid", sessionUuid.toString())
+			);
 			sseEmitterService.complete(sessionUuid);
 		} catch (Exception e) {
 			log.error("[SessionReport] 리포트 생성 실패. sessionId={}, error={}", sessionId, e.getMessage());
@@ -168,7 +173,7 @@ public class AnswerAnalysisService {
 	 * 이미 처리 중이거나 완료된 경우 null 반환.
 	 */
 	@Transactional
-	public SessionReportContext loadSessionReportContext(Long sessionId) {
+	public SessionReportContext loadSessionReportContext (Long sessionId) {
 		InterviewSession session = sessionRepository.findById(sessionId)
 			.orElseThrow(() -> new IllegalStateException("면접 세션을 찾을 수 없습니다: " + sessionId));
 
@@ -202,7 +207,7 @@ public class AnswerAnalysisService {
 	 * AI 응답 수신 후 리포트를 COMPLETED 상태로 업데이트.
 	 */
 	@Transactional
-	public void saveInterviewReport(Long sessionId, SessionReportContext ctx, AiResponse response) {
+	public void saveInterviewReport (Long sessionId, SessionReportContext ctx, AiResponse response) {
 		InterviewReport report = reportRepository.findById(ctx.reportId())
 			.orElseThrow(() -> new IllegalStateException("리포트를 찾을 수 없습니다. sessionId=" + sessionId));
 		report.complete(
@@ -215,15 +220,16 @@ public class AnswerAnalysisService {
 	 * AI 실패 시 리포트를 FAILED 상태로 업데이트.
 	 */
 	@Transactional
-	public void markReportFailed(Long sessionId) {
+	public void markReportFailed (Long sessionId) {
 		InterviewSession session = sessionRepository.findById(sessionId).orElse(null);
-		if (session == null) return;
+		if (session == null)
+			return;
 		reportRepository.findBySession(session).ifPresent(InterviewReport::fail);
 	}
 
 	// ── 조회 API ───────────────────────────────────────────────────────────────
 
-	public AnswerAnalysisResponse getByUuid(UUID analysisUuid, String userUuidStr) {
+	public AnswerAnalysisResponse getByUuid (UUID analysisUuid, String userUuidStr) {
 		AnswerAnalysis analysis = analysisRepository.findByUuid(analysisUuid)
 			.orElseThrow(() -> new AnswerAnalysisNotFoundException("답변 분석을 찾을 수 없습니다."));
 
@@ -235,7 +241,7 @@ public class AnswerAnalysisService {
 		return AnswerAnalysisResponse.from(analysis);
 	}
 
-	public List<AnswerAnalysisResponse> getBySessionUuid(UUID sessionUuid, String userUuidStr) {
+	public List<AnswerAnalysisResponse> getBySessionUuid (UUID sessionUuid, String userUuidStr) {
 		InterviewSession session = sessionRepository.findByUuid(sessionUuid)
 			.orElseThrow(() -> new InterviewSessionNotFoundException("면접 세션을 찾을 수 없습니다."));
 
@@ -258,9 +264,11 @@ public class AnswerAnalysisService {
 		Map<String, Integer> fillerWordCounts,
 		Integer silenceCount,
 		Integer totalSilenceDuration
-	) {}
+	) {
+	}
 
-	public record AiAnalysisResult(String aiReview, int logicScore) {}
+	public record AiAnalysisResult(String aiReview, int logicScore) {
+	}
 
 	public record SessionReportContext(
 		UUID sessionUuid,
@@ -270,21 +278,22 @@ public class AnswerAnalysisService {
 		int avgFillerScore,
 		int avgLogicScore,
 		int avgTotalScore
-	) {}
+	) {
+	}
 
 	// ── 유틸 ───────────────────────────────────────────────────────────────────
 
-	private Map<String, Integer> countFillerWords(List<String> fillerWords) {
+	private Map<String, Integer> countFillerWords (List<String> fillerWords) {
 		List<String> targets = List.of("음", "어", "그");
 		if (fillerWords == null || fillerWords.isEmpty()) {
 			return targets.stream().collect(Collectors.toMap(k -> k, k -> 0));
 		}
 		return targets.stream().collect(
-			Collectors.toMap(k -> k, k -> (int) fillerWords.stream().filter(k::equals).count())
+			Collectors.toMap(k -> k, k -> (int)fillerWords.stream().filter(k::equals).count())
 		);
 	}
 
-	private String buildAnalysesText(List<AnswerAnalysis> analyses) {
+	private String buildAnalysesText (List<AnswerAnalysis> analyses) {
 		StringBuilder sb = new StringBuilder();
 		for (AnswerAnalysis aa : analyses) {
 			InterviewQuestion q = aa.getAnswer().getQuestion();
@@ -305,24 +314,24 @@ public class AnswerAnalysisService {
 		return sb.toString().trim();
 	}
 
-	private int calcSilenceScore(Integer totalSilenceDuration, Integer silenceCount) {
+	private int calcSilenceScore (Integer totalSilenceDuration, Integer silenceCount) {
 		int durationSec = totalSilenceDuration / 1000;
 		int deduction = Math.max(0, durationSec - 5 * silenceCount);
 		return Math.max(0, 100 - deduction);
 	}
 
-	private int calcFillerScore(Map<String, Integer> fillerWordCounts) {
+	private int calcFillerScore (Map<String, Integer> fillerWordCounts) {
 		int totalFillers = fillerWordCounts.values().stream().mapToInt(Integer::intValue).sum();
 		return Math.max(0, 100 - totalFillers);
 	}
 
-	private int avgScore(List<AnswerAnalysis> analyses, Function<AnswerAnalysis, Integer> getter) {
-		return (int) Math.round(
+	private int avgScore (List<AnswerAnalysis> analyses, Function<AnswerAnalysis, Integer> getter) {
+		return (int)Math.round(
 			analyses.stream().mapToInt(aa -> getter.apply(aa) != null ? getter.apply(aa) : 0).average().orElse(0)
 		);
 	}
 
-	private String orEmpty(String value) {
+	private String orEmpty (String value) {
 		return value != null ? value : "";
 	}
 }

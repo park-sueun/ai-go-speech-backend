@@ -19,7 +19,7 @@ public record AiProperties(
 	) {
 	}
 
-	public record RetryProperties(int maxAttempts, long delayMs) {
+	public record RetryProperties(int maxAttempts, long delayMs, long jitterMs) {
 	}
 
 	public record TimeoutProperties(int connectMs, int readMs) {

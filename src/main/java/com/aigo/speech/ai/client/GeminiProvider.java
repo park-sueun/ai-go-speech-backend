@@ -15,6 +15,7 @@ import com.aigo.speech.ai.dto.AiPromptRequest;
 import com.aigo.speech.ai.dto.AiResponse;
 import com.aigo.speech.ai.exception.AiException;
 import com.aigo.speech.ai.exception.AiRateLimitException;
+import com.aigo.speech.ai.exception.AiServerOverloadException;
 import com.aigo.speech.ai.exception.AiTimeoutException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +82,10 @@ public class GeminiProvider implements AiProvider {
 				})
 				.bodyValue(body)
 				.retrieve()
+				.onStatus(
+					status -> status.value() == 503,
+					response -> Mono.error(new AiServerOverloadException(PROVIDER))
+				)
 				.onStatus(
 					status -> status.value() == 429,
 					response -> Mono.error(new AiRateLimitException(PROVIDER))

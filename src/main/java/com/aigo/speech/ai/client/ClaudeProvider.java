@@ -92,7 +92,14 @@ public class ClaudeProvider implements AiProvider {
 				)
 				.onStatus(
 					status -> status.value() == 429,
-					response -> Mono.error(new AiRateLimitException(PROVIDER))
+					response -> {
+						// Anthropic은 retry-after(소문자) 또는 Retry-After 헤더 사용
+						String header = response.headers().asHttpHeaders().getFirst("retry-after");
+						if (header == null) {
+							header = response.headers().asHttpHeaders().getFirst("Retry-After");
+						}
+						return Mono.error(new AiRateLimitException(PROVIDER, parseRetryAfterMs(header)));
+					}
 				)
 				.onStatus(
 					HttpStatusCode::isError,
@@ -116,6 +123,16 @@ public class ClaudeProvider implements AiProvider {
 			throw new AiException("Claude API 연결 실패", e);
 		} catch (Exception e) {
 			throw new AiException("Claude 응답 파싱 실패", e);
+		}
+	}
+
+	/** "Retry-After: 60" 형식(초 단위)을 ms로 변환. 파싱 불가 시 -1 반환. */
+	private long parseRetryAfterMs(String header) {
+		if (header == null || header.isBlank()) return -1;
+		try {
+			return Long.parseLong(header.trim()) * 1000L;
+		} catch (NumberFormatException e) {
+			return -1;
 		}
 	}
 

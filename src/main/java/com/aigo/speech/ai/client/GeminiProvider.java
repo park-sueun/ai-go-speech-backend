@@ -103,7 +103,10 @@ public class GeminiProvider implements AiProvider {
 				)
 				.onStatus(
 					status -> status.value() == 429,
-					response -> Mono.error(new AiRateLimitException(PROVIDER))
+					response -> {
+						String header = response.headers().asHttpHeaders().getFirst("Retry-After");
+						return Mono.error(new AiRateLimitException(PROVIDER, parseRetryAfterMs(header)));
+					}
 				)
 				.onStatus(
 					HttpStatusCode::isError,
@@ -136,6 +139,16 @@ public class GeminiProvider implements AiProvider {
 			throw new AiException("Gemini API 연결 실패", e);
 		} catch (Exception e) {
 			throw new AiException("Gemini 응답 파싱 실패", e);
+		}
+	}
+
+	/** "Retry-After: 60" 형식(초 단위)을 ms로 변환. 파싱 불가 시 -1 반환. */
+	private long parseRetryAfterMs(String header) {
+		if (header == null || header.isBlank()) return -1;
+		try {
+			return Long.parseLong(header.trim()) * 1000L;
+		} catch (NumberFormatException e) {
+			return -1;
 		}
 	}
 

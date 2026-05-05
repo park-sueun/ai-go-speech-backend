@@ -92,9 +92,15 @@ public class AiService {
 				throw e;
 			} catch (AiRateLimitException e) {
 				if (attempt < maxAttempts) {
-					// 지수 백오프: delayMs * 2^(attempt-1) + random jitter
-					long waitMs = delayMs * (long) Math.pow(2, attempt - 1)
-						+ ThreadLocalRandom.current().nextLong(0, jitterMs + 1);
+					long waitMs;
+					if (e.getRetryAfterMs() > 0) {
+						// Retry-After 헤더 기반 대기 + jitter
+						waitMs = e.getRetryAfterMs() + ThreadLocalRandom.current().nextLong(0, jitterMs + 1);
+					} else {
+						// 헤더 없는 경우: 지수 백오프
+						waitMs = delayMs * (long) Math.pow(2, attempt - 1)
+							+ ThreadLocalRandom.current().nextLong(0, jitterMs + 1);
+					}
 					log.warn(
 						"[AI] Rate limit, {}ms 후 재시도. provider={}, attempt={}/{}", waitMs, client.getProvider(),
 						attempt, maxAttempts

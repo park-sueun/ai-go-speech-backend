@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.aigo.speech.global.dto.ApiResponse;
 import com.aigo.speech.terms.dto.UserAgreementResponse;
 import com.aigo.speech.terms.service.UserTermsAgreementService;
 
@@ -21,9 +22,9 @@ public class UserTermsAgreementController {
 	private final UserTermsAgreementService userTermsAgreementService;
 
 	@GetMapping
-	public ResponseEntity<List<UserAgreementResponse>> getAgreements (
+	public ResponseEntity<ApiResponse<List<UserAgreementResponse>>> getAgreements (
 		@AuthenticationPrincipal String userUuid
 	) {
-		return ResponseEntity.ok(userTermsAgreementService.getUserAgreements(userUuid));
+		return ResponseEntity.ok(ApiResponse.success(userTermsAgreementService.getUserAgreements(userUuid)));
 	}
 }

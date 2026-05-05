@@ -1,6 +1,5 @@
 package com.aigo.speech.answer.service;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -10,10 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import com.aigo.speech.answer.dto.AnswerSubmittedEvent;
+import com.aigo.speech.answer.dto.AllAnswersSubmittedEvent;
 import com.aigo.speech.answer.entity.InterviewAnswer;
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
-import com.aigo.speech.global.dto.TimePeriod;
 import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.entity.InterviewStatus;
@@ -67,16 +65,6 @@ public class InterviewAnswerService {
 
 		log.info("[Answer] 답변 제출 완료. sessionUuid={}, questionUuid={}", session.getUuid(), question.getUuid());
 
-		int silenceCount = request.getSilencePeriods() == null ? 0 : request.getSilencePeriods().size();
-		int totalSilenceDuration = sumDurations(request.getSilencePeriods());
-
-		// 트랜잭션 커밋 후 AnswerAnalysisProcessor가 @TransactionalEventListener(AFTER_COMMIT)로 수신
-		eventPublisher.publishEvent(new AnswerSubmittedEvent(
-			answer.getId(),
-			silenceCount,
-			totalSilenceDuration
-		));
-
 		long totalQuestions = questionRepository.countBySession(session);
 		long totalAnswers = answerRepository.countBySession(session);
 
@@ -89,18 +77,13 @@ public class InterviewAnswerService {
 						sessionUuid, "ALL_ANSWERS_SUBMITTED",
 						Map.of("sessionUuid", sessionUuid.toString())
 					);
-					sseEmitterService.complete(sessionUuid);
+					// SSE 연결은 분석 완료(SESSION_ANALYSIS_DONE) 후에 닫힘
 				}
 			});
+			eventPublisher.publishEvent(new AllAnswersSubmittedEvent(session.getId()));
 			log.info("[Answer] 모든 답변 제출 완료. sessionUuid={}", session.getUuid());
 		}
 
 		return new SubmitAnswerResponse(answer.getUuid());
-	}
-
-	private int sumDurations (List<TimePeriod> periods) {
-		if (periods == null)
-			return 0;
-		return periods.stream().mapToInt(p -> p.endMs() - p.startMs()).sum();
 	}
 }

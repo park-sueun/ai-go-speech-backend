@@ -54,7 +54,7 @@ public class ClaudeProvider implements AiProvider {
 	@Override
 	public String complete(String systemPrompt, String userPrompt) {
 		Map<String, Object> body = Map.of(
-			"model", props.claude().model(),
+			"model", props.claude().models().get(0),
 			"max_tokens", 4096,
 			"system", systemPrompt,
 			"messages", List.of(Map.of("role", "user", "content", userPrompt))
@@ -65,13 +65,13 @@ public class ClaudeProvider implements AiProvider {
 	@Override
 	public AiResponse complete(AiPromptRequest request, String renderedPrompt) {
 		Map<String, Object> body = Map.of(
-			"model", props.claude().model(),
+			"model", props.claude().models().get(0),
 			"max_tokens", request.maxTokens(),
 			"messages", List.of(Map.of("role", "user", "content", renderedPrompt))
 		);
 		String content = callApi(body);
 		log.debug("[Claude] 응답 수신. contentLength={}", content.length());
-		return new AiResponse(PROVIDER, props.claude().model(), content);
+		return new AiResponse(PROVIDER, props.claude().models().get(0), content);
 	}
 
 	@SuppressWarnings("unchecked")

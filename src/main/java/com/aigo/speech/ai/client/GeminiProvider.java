@@ -53,18 +53,33 @@ public class GeminiProvider implements AiProvider {
 	@Override
 	public String complete(String systemPrompt, String userPrompt) {
 		String fullPrompt = systemPrompt.isBlank() ? userPrompt : systemPrompt + "\n\n" + userPrompt;
-		return callApi(fullPrompt, 4096);
+		// 단순 호출은 첫 번째 모델만 사용
+		return callApiWithModel(props.gemini().models().get(0), fullPrompt, 4096);
 	}
 
 	@Override
 	public AiResponse complete(AiPromptRequest request, String renderedPrompt) {
-		String content = callApi(renderedPrompt, request.maxTokens());
-		log.debug("[Gemini] 응답 수신. contentLength={}", content.length());
-		return new AiResponse(PROVIDER, props.gemini().model(), content);
+		List<String> models = props.gemini().models();
+		for (int i = 0; i < models.size(); i++) {
+			String model = models.get(i);
+			try {
+				String content = callApiWithModel(model, renderedPrompt, request.maxTokens());
+				log.debug("[Gemini] 응답 수신. model={}, contentLength={}", model, content.length());
+				return new AiResponse(PROVIDER, model, content);
+			} catch (AiServerOverloadException e) {
+				if (i < models.size() - 1) {
+					log.warn("[Gemini] 503, 모델 전환. {} → {}", model, models.get(i + 1));
+				} else {
+					throw e;
+				}
+			}
+		}
+		throw new AiServerOverloadException(PROVIDER);
 	}
 
 	@SuppressWarnings("unchecked")
-	private String callApi(String prompt, int maxTokens) {
+	private String callApiWithModel(String model, String prompt, int maxTokens) {
+		String apiUrl = props.gemini().apiUrl().replace("{model}", model);
 		Map<String, Object> body = Map.of(
 			"contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
 			"generationConfig", Map.of(
@@ -75,7 +90,7 @@ public class GeminiProvider implements AiProvider {
 
 		try {
 			Map<?, ?> responseBody = webClient.post()
-				.uri(props.gemini().apiUrl())
+				.uri(apiUrl)
 				.headers(headers -> {
 					headers.setContentType(MediaType.APPLICATION_JSON);
 					headers.set("x-goog-api-key", props.gemini().apiKey());

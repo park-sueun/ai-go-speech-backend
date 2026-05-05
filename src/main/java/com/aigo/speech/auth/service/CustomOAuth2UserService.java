@@ -2,6 +2,7 @@ package com.aigo.speech.auth.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -13,6 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.aigo.speech.auth.dto.OAuthAttributes;
+import com.aigo.speech.terms.entity.Terms;
+import com.aigo.speech.terms.entity.UserTermsAgreement;
+import com.aigo.speech.terms.repository.TermsRepository;
+import com.aigo.speech.terms.repository.UserTermsAgreementRepository;
 import com.aigo.speech.user.entity.Profile;
 import com.aigo.speech.user.entity.User;
 import com.aigo.speech.user.repository.ProfileRepository;
@@ -26,6 +31,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
 	private final UserRepository userRepository;
 	private final ProfileRepository profileRepository;
+	private final TermsRepository termsRepository;
+	private final UserTermsAgreementRepository userTermsAgreementRepository;
 
 	@Override
 	@Transactional
@@ -65,7 +72,25 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 	private User saveOrUpdateUser (OAuthAttributes attributes) {
 		return userRepository
 			.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
-			.orElseGet(() -> userRepository.save(attributes.toEntity()));
+			.orElseGet(() -> {
+				User newUser = userRepository.save(attributes.toEntity());
+				agreeToRequiredTerms(newUser);
+				return newUser;
+			});
+	}
+
+	private void agreeToRequiredTerms (User user) {
+		List<Terms> requiredTerms = termsRepository.findAllByIsActiveTrue().stream()
+			.filter(Terms::getRequired)
+			.collect(Collectors.toList());
+
+		if (requiredTerms.isEmpty()) return;
+
+		List<UserTermsAgreement> agreements = requiredTerms.stream()
+			.map(terms -> new UserTermsAgreement(user, terms))
+			.collect(Collectors.toList());
+
+		userTermsAgreementRepository.saveAll(agreements);
 	}
 
 	private Profile saveOrUpdateProfile (User user, OAuthAttributes attributes) {
@@ -82,5 +107,4 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 					.build()
 			));
 	}
-	
 }

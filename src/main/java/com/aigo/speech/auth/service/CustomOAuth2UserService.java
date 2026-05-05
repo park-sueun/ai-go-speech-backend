@@ -2,6 +2,7 @@ package com.aigo.speech.auth.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -102,9 +103,19 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 			.orElseGet(() -> profileRepository.save(
 				Profile.builder()
 					.user(user)
-					.nickname(attributes.getNickname())
+					.nickname(resolveUniqueNickname(attributes.getNickname()))
 					.profileImageUrl(attributes.getProfileImage())
 					.build()
 			));
+	}
+
+	private String resolveUniqueNickname (String base) {
+		if (!profileRepository.existsByNickname(base)) return base;
+		String candidate;
+		do {
+			int suffix = ThreadLocalRandom.current().nextInt(1000, 10000);
+			candidate = base + "_" + suffix;
+		} while (profileRepository.existsByNickname(candidate));
+		return candidate;
 	}
 }

@@ -19,7 +19,7 @@ import com.aigo.speech.terms.service.TermsService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/terms")
+@RequestMapping("/api/terms")
 @RequiredArgsConstructor
 public class TermsController {
 	private final TermsService termsService;

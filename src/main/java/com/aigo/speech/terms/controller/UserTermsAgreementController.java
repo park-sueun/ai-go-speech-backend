@@ -14,7 +14,7 @@ import com.aigo.speech.terms.service.UserTermsAgreementService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/user-agreements")
+@RequestMapping("/api/user-agreements")
 @RequiredArgsConstructor
 public class UserTermsAgreementController {
 

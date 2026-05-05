@@ -14,13 +14,16 @@ import com.aigo.speech.ai.dto.AiPromptRequest;
 import com.aigo.speech.ai.dto.AiResponse;
 import com.aigo.speech.ai.prompt.PromptTemplate;
 import com.aigo.speech.ai.service.AiService;
+import com.aigo.speech.answer.dto.AnswerAnalysisResponse;
 import com.aigo.speech.answer.entity.AnswerAnalysis;
 import com.aigo.speech.answer.entity.InterviewAnswer;
+import com.aigo.speech.answer.exception.AnswerAnalysisNotFoundException;
 import com.aigo.speech.answer.repository.AnswerAnalysisRepository;
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
 import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.entity.InterviewReport;
 import com.aigo.speech.interview.entity.InterviewSession;
+import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
 import com.aigo.speech.interview.repository.InterviewReportRepository;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
 import com.aigo.speech.question.entity.InterviewQuestion;
@@ -66,7 +69,12 @@ public class AnswerAnalysisService {
 				PromptTemplate.ANSWER_ANALYSIS_V1.getContent(),
 				Map.of(
 					"question", orEmpty(question.getContent()),
-					"transcript", orEmpty(answer.getTranscript())
+					"transcript", orEmpty(answer.getTranscript()),
+					"silenceDurationSec", String.valueOf(totalSilenceDuration / 1000),
+					"silenceCount", String.valueOf(silenceCount),
+					"fillerEum", String.valueOf(fillerWordCounts.getOrDefault("음", 0)),
+					"fillerEo", String.valueOf(fillerWordCounts.getOrDefault("어", 0)),
+					"fillerGeu", String.valueOf(fillerWordCounts.getOrDefault("그", 0))
 				)
 			);
 			AiResponse response = aiService.complete(request);
@@ -163,10 +171,19 @@ public class AnswerAnalysisService {
 		StringBuilder sb = new StringBuilder();
 		for (AnswerAnalysis aa : analyses) {
 			InterviewQuestion q = aa.getAnswer().getQuestion();
+			Map<String, Integer> fillers = aa.getFillerWords();
 			sb.append("질문 ").append(q.getSequenceOrder()).append(": ").append(q.getContent()).append("\n");
 			sb.append("답변: ").append(orEmpty(aa.getAnswer().getTranscript())).append("\n");
 			sb.append("AI 분석: ").append(orEmpty(aa.getAiReview())).append("\n");
-			sb.append("논리 점수: ").append(aa.getLogicScore()).append("점\n\n");
+			sb.append("논리 점수: ").append(aa.getLogicScore()).append("점\n");
+			sb.append("침묵 시간: ").append(aa.getTotalSilenceDuration() / 1000).append("초, ");
+			sb.append("침묵 횟수: ").append(aa.getSilenceCount()).append("회\n");
+			if (fillers != null) {
+				sb.append("습관어: 음 ").append(fillers.getOrDefault("음", 0)).append("회, ");
+				sb.append("어 ").append(fillers.getOrDefault("어", 0)).append("회, ");
+				sb.append("그 ").append(fillers.getOrDefault("그", 0)).append("회\n");
+			}
+			sb.append("\n");
 		}
 		return sb.toString().trim();
 	}
@@ -186,6 +203,32 @@ public class AnswerAnalysisService {
 		return (int)Math.round(
 			analyses.stream().mapToInt(aa -> getter.apply(aa) != null ? getter.apply(aa) : 0).average().orElse(0)
 		);
+	}
+
+	public AnswerAnalysisResponse getByUuid(UUID analysisUuid, String userUuidStr) {
+		AnswerAnalysis analysis = analysisRepository.findByUuid(analysisUuid)
+			.orElseThrow(() -> new AnswerAnalysisNotFoundException("답변 분석을 찾을 수 없습니다."));
+
+		InterviewSession session = analysis.getAnswer().getQuestion().getSession();
+		if (!session.getUser().getUuid().equals(UUID.fromString(userUuidStr))) {
+			throw new AnswerAnalysisNotFoundException("답변 분석을 찾을 수 없습니다.");
+		}
+
+		return AnswerAnalysisResponse.from(analysis);
+	}
+
+	public List<AnswerAnalysisResponse> getBySessionUuid(UUID sessionUuid, String userUuidStr) {
+		InterviewSession session = sessionRepository.findByUuid(sessionUuid)
+			.orElseThrow(() -> new InterviewSessionNotFoundException("면접 세션을 찾을 수 없습니다."));
+
+		if (!session.getUser().getUuid().equals(UUID.fromString(userUuidStr))) {
+			throw new InterviewSessionNotFoundException("면접 세션을 찾을 수 없습니다.");
+		}
+
+		return analysisRepository.findBySessionWithDetails(session)
+			.stream()
+			.map(AnswerAnalysisResponse::from)
+			.toList();
 	}
 
 	private String orEmpty (String value) {

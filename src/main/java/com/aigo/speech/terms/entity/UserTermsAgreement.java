@@ -2,6 +2,7 @@ package com.aigo.speech.terms.entity;
 
 import java.time.LocalDateTime;
 
+import com.aigo.speech.global.entity.BaseTimeEntity;
 import com.aigo.speech.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -21,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "USER_TERMS_AGREEMENT")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserTermsAgreement {
+public class UserTermsAgreement extends BaseTimeEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;

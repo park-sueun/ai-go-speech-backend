@@ -1,7 +1,8 @@
 package com.aigo.speech.terms.entity;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
+
+import com.aigo.speech.global.entity.BaseTimeEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,7 +21,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class Terms {
+public class Terms extends BaseTimeEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -46,9 +47,6 @@ public class Terms {
 
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive = true;
-
-	@Column(name = "created_at", updatable = false)
-	private LocalDateTime createdAt = LocalDateTime.now();
 
 	@Builder
 	public Terms (

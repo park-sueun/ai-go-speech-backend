@@ -1,6 +1,8 @@
 package com.aigo.speech.answer.repository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,4 +18,7 @@ public interface AnswerAnalysisRepository extends JpaRepository<AnswerAnalysis, 
 
 	@Query("SELECT aa FROM AnswerAnalysis aa JOIN FETCH aa.answer a JOIN FETCH a.question q WHERE q.session = :session ORDER BY q.sequenceOrder")
 	List<AnswerAnalysis> findBySessionWithDetails(@Param("session") InterviewSession session);
+
+	@Query("SELECT aa FROM AnswerAnalysis aa JOIN FETCH aa.answer a JOIN FETCH a.question q JOIN FETCH q.session s JOIN FETCH s.user WHERE aa.uuid = :uuid")
+	Optional<AnswerAnalysis> findByUuid(@Param("uuid") UUID uuid);
 }

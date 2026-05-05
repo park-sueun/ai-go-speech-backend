@@ -68,6 +68,7 @@ class AuthServiceTest {
 		SignupRequest request = new SignupRequest();
 		request.setEmail(EMAIL);
 		request.setPassword(PASSWORD);
+		request.setConfirmPassword(PASSWORD);
 		request.setNickname("tester");
 		given(userRepository.existsByEmail(EMAIL)).willReturn(true);
 
@@ -84,6 +85,7 @@ class AuthServiceTest {
 		SignupRequest request = new SignupRequest();
 		request.setEmail(EMAIL);
 		request.setPassword(PASSWORD);
+		request.setConfirmPassword(PASSWORD);
 		request.setNickname("tester");
 		given(userRepository.existsByEmail(EMAIL)).willReturn(false);
 		given(bCryptPasswordEncoder.encode(PASSWORD)).willReturn(ENCODED_PASSWORD);
@@ -238,12 +240,11 @@ class AuthServiceTest {
 		request.setPassword(PASSWORD);
 		request.setConfirmPassword(PASSWORD);
 		request.setNickname("tester");
-		request.setAgreedTerms(List.of(1L));
-
 		Terms terms = Terms.builder().id(1L).required(true).isActive(true).build();
+		request.setAgreedTerms(List.of(terms.getUuid()));
 
 		given(termsRepository.findAllByIsActiveTrue()).willReturn(List.of(terms));
-		given(termsRepository.findAllById(List.of(1L))).willReturn(List.of(terms));
+		given(termsRepository.findAllByUuidIn(any())).willReturn(List.of(terms));
 		given(userRepository.existsByEmail(EMAIL)).willReturn(false);
 		given(profileRepository.existsByNickname(anyString())).willReturn(false);
 

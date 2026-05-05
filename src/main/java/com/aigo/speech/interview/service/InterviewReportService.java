@@ -14,6 +14,7 @@ import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.interview.dto.InterviewReportDetailResponse;
 import com.aigo.speech.interview.dto.InterviewReportSummaryResponse;
 import com.aigo.speech.interview.entity.InterviewReport;
+import com.aigo.speech.interview.entity.InterviewReport.ReportStatus;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InterviewReportPendingException;
 import com.aigo.speech.interview.repository.InterviewReportRepository;
@@ -44,6 +45,7 @@ public class InterviewReportService {
 
 		Map<Long, InterviewReport> reportBySessionId = reportRepository.findBySessionIn(sessions)
 			.stream()
+			.filter(r -> r.getStatus() == ReportStatus.COMPLETED)
 			.collect(Collectors.toMap(r -> r.getSession().getId(), r -> r));
 
 		return sessions.stream()
@@ -60,6 +62,7 @@ public class InterviewReportService {
 		sessionService.validateOwnership(session, userUuidStr);
 
 		InterviewReport report = reportRepository.findBySession(session)
+			.filter(r -> r.getStatus() == ReportStatus.COMPLETED)
 			.orElseThrow(() -> new InterviewReportPendingException("아직 분석이 진행 중입니다."));
 
 		List<AnswerAnalysis> analyses = analysisRepository.findBySessionWithDetails(session);

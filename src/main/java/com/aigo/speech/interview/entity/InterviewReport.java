@@ -6,6 +6,8 @@ import com.aigo.speech.global.entity.BaseTimeEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -23,6 +25,10 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class InterviewReport extends BaseTimeEntity {
+
+	public enum ReportStatus {
+		GENERATING, COMPLETED, FAILED
+	}
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,16 +57,30 @@ public class InterviewReport extends BaseTimeEntity {
 	@Column(name = "total_score")
 	private Integer totalScore;
 
-	public InterviewReport (
-		InterviewSession session, String aiSummary,
-		Integer silenceScore, Integer fillerScore, Integer logicScore, Integer totalScore
-	) {
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	private ReportStatus status = ReportStatus.GENERATING;
+
+	// GENERATING 상태로 선삽입 — 중복 방지 (session_id UNIQUE 제약)
+	public InterviewReport(InterviewSession session) {
 		this.uuid = UUID.randomUUID();
 		this.session = session;
+		this.status = ReportStatus.GENERATING;
+	}
+
+	public void complete(
+		String aiSummary, Integer silenceScore, Integer fillerScore,
+		Integer logicScore, Integer totalScore
+	) {
 		this.aiSummary = aiSummary;
 		this.silenceScore = silenceScore;
 		this.fillerScore = fillerScore;
 		this.logicScore = logicScore;
 		this.totalScore = totalScore;
+		this.status = ReportStatus.COMPLETED;
+	}
+
+	public void fail() {
+		this.status = ReportStatus.FAILED;
 	}
 }

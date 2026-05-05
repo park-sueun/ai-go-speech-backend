@@ -33,8 +33,9 @@ import com.aigo.speech.question.repository.InterviewQuestionRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.json.JsonReadFeature;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
@@ -42,13 +43,17 @@ import tools.jackson.databind.ObjectMapper;
 @Transactional(readOnly = true)
 public class AnswerAnalysisService {
 
+	// AI 응답 내 unescaped 제어 문자(LF 등)를 허용하는 전용 mapper
+	private static final JsonMapper LENIENT_MAPPER = JsonMapper.builder()
+		.enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS)
+		.build();
+
 	private final InterviewAnswerRepository answerRepository;
 	private final AnswerAnalysisRepository analysisRepository;
 	private final InterviewSessionRepository sessionRepository;
 	private final InterviewReportRepository reportRepository;
 	private final InterviewQuestionRepository questionRepository;
 	private final AiService aiService;
-	private final ObjectMapper objectMapper;
 	private final SseEmitterService sseEmitterService;
 
 	// self-injection: generateReportAsync 내에서 @Transactional 메서드를 프록시 경유 호출하기 위함
@@ -90,7 +95,7 @@ public class AnswerAnalysisService {
 				)
 			);
 			AiResponse response = aiService.complete(request);
-			Map<String, Object> parsed = objectMapper.readValue(
+			Map<String, Object> parsed = LENIENT_MAPPER.readValue(
 				response.content(), new TypeReference<Map<String, Object>>() {}
 			);
 			String aiReview = (String) parsed.get("aiReview");

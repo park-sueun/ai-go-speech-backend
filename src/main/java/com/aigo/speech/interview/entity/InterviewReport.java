@@ -83,4 +83,8 @@ public class InterviewReport extends BaseTimeEntity {
 	public void fail() {
 		this.status = ReportStatus.FAILED;
 	}
+
+	public void retry() {
+		this.status = ReportStatus.GENERATING;
+	}
 }

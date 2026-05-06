@@ -101,12 +101,17 @@ public class AnswerAnalysisService {
 		InterviewSession session = sessionRepository.findById(sessionId)
 			.orElseThrow(() -> new IllegalStateException("면접 세션을 찾을 수 없습니다: " + sessionId));
 
-		if (reportRepository.existsBySessionAndStatusNot(session, InterviewReport.ReportStatus.FAILED)) {
-			return null;
+		InterviewReport report;
+		InterviewReport existing = reportRepository.findBySession(session).orElse(null);
+		if (existing != null) {
+			if (existing.getStatus() != InterviewReport.ReportStatus.FAILED) {
+				return null;
+			}
+			existing.retry();
+			report = existing;
+		} else {
+			report = reportRepository.save(new InterviewReport(session));
 		}
-
-		// GENERATING 상태 선삽입 — session_id UNIQUE 제약으로 동시 중복 삽입 방지
-		InterviewReport report = reportRepository.save(new InterviewReport(session));
 
 		List<InterviewAnswer> answers = answerRepository.findBySessionOrderBySequenceOrder(session);
 		List<AnswerStat> stats = answers.stream().map(a -> {

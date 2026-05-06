@@ -13,6 +13,7 @@ services:
 
   certbot:
     image: certbot/certbot
+    restart: unless-stopped
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
@@ -20,7 +21,7 @@ services:
       /bin/sh -c "trap exit TERM;
         while :; do
           certbot renew --webroot -w /var/www/certbot --quiet;
-          sleep 12h & wait $${!};
+          sleep 12h & wait $$!;
         done"
     networks:
       - app-network

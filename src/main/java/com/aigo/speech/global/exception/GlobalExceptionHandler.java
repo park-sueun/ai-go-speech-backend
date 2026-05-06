@@ -173,11 +173,6 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
 	}
 
-	@ExceptionHandler(InvalidTermsAgreementException.class)
-	public ResponseEntity<ApiResponse<?>> handleInvalidTermsAgreement (InvalidTermsAgreementException e) {
-		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
-	}
-
 	@ExceptionHandler(UnauthorizedCurriculumException.class)
 	public ResponseEntity<ApiResponse<?>> handleIllegalArgument (UnauthorizedCurriculumException e) {
 		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(e.getMessage()));

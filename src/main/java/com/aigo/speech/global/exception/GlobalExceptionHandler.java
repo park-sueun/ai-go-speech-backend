@@ -6,6 +6,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.aigo.speech.answer.exception.AnswerAnalysisNotFoundException;
 import com.aigo.speech.auth.exception.DuplicateEmailException;
 import com.aigo.speech.auth.exception.DuplicateNicknameException;
 import com.aigo.speech.auth.exception.InvalidCredentialsException;
@@ -16,6 +17,8 @@ import com.aigo.speech.auth.exception.SamePasswordException;
 import com.aigo.speech.auth.exception.TokenExpiredException;
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.global.dto.ApiResponse;
+import com.aigo.speech.interview.exception.InterviewReportNotFoundException;
+import com.aigo.speech.interview.exception.InterviewReportPendingException;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.jobposting.exception.InvalidUrlException;
@@ -33,6 +36,21 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(InterviewSessionNotFoundException.class)
 	public ResponseEntity<ApiResponse<?>> handleInterviewSessionNotFound (InterviewSessionNotFoundException e) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(InterviewReportNotFoundException.class)
+	public ResponseEntity<ApiResponse<?>> handleInterviewReportNotFound (InterviewReportNotFoundException e) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(InterviewReportPendingException.class)
+	public ResponseEntity<ApiResponse<?>> handleInterviewReportPending (InterviewReportPendingException e) {
+		return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(AnswerAnalysisNotFoundException.class)
+	public ResponseEntity<ApiResponse<?>> handleAnswerAnalysisNotFound (AnswerAnalysisNotFoundException e) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
 	}
 

@@ -3,6 +3,7 @@ package com.aigo.speech.ai.service;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import com.aigo.speech.ai.dto.AiPromptRequest;
 import com.aigo.speech.ai.dto.AiResponse;
 import com.aigo.speech.ai.exception.AiException;
 import com.aigo.speech.ai.exception.AiRateLimitException;
+import com.aigo.speech.ai.exception.AiServerOverloadException;
 import com.aigo.speech.ai.exception.AiTimeoutException;
 import com.aigo.speech.ai.prompt.PromptRenderer;
 
@@ -78,14 +80,27 @@ public class AiService {
 	private AiResponse callWithRetry (AiProvider client, AiPromptRequest request, String renderedPrompt) {
 		int maxAttempts = props.retry().maxAttempts();
 		long delayMs = props.retry().delayMs();
+		long jitterMs = props.retry().jitterMs();
 
 		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
 			try {
 				log.debug("[AI] 호출 시작. provider={}, attempt={}/{}", client.getProvider(), attempt, maxAttempts);
 				return client.complete(request, renderedPrompt);
+			} catch (AiServerOverloadException e) {
+				// 503은 재시도 없이 즉시 폴백
+				log.warn("[AI] 서버 과부하(503), 즉시 폴백. provider={}", client.getProvider());
+				throw e;
 			} catch (AiRateLimitException e) {
 				if (attempt < maxAttempts) {
-					long waitMs = delayMs * attempt;
+					long waitMs;
+					if (e.getRetryAfterMs() > 0) {
+						// Retry-After 헤더 기반 대기 + jitter
+						waitMs = e.getRetryAfterMs() + ThreadLocalRandom.current().nextLong(0, jitterMs + 1);
+					} else {
+						// 헤더 없는 경우: 지수 백오프
+						waitMs = delayMs * (long) Math.pow(2, attempt - 1)
+							+ ThreadLocalRandom.current().nextLong(0, jitterMs + 1);
+					}
 					log.warn(
 						"[AI] Rate limit, {}ms 후 재시도. provider={}, attempt={}/{}", waitMs, client.getProvider(),
 						attempt, maxAttempts

@@ -1,5 +1,6 @@
 package com.aigo.speech.answer.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,4 +20,7 @@ public interface InterviewAnswerRepository extends JpaRepository<InterviewAnswer
 
 	@Query("SELECT COUNT(a) FROM InterviewAnswer a WHERE a.question.session = :session")
 	long countBySession(@Param("session") InterviewSession session);
+
+	@Query("SELECT ia FROM InterviewAnswer ia JOIN FETCH ia.question q WHERE q.session = :session ORDER BY q.sequenceOrder")
+	List<InterviewAnswer> findBySessionOrderBySequenceOrder(@Param("session") InterviewSession session);
 }

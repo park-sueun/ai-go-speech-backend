@@ -15,6 +15,7 @@ import com.aigo.speech.ai.dto.AiPromptRequest;
 import com.aigo.speech.ai.dto.AiResponse;
 import com.aigo.speech.ai.exception.AiException;
 import com.aigo.speech.ai.exception.AiRateLimitException;
+import com.aigo.speech.ai.exception.AiServerOverloadException;
 import com.aigo.speech.ai.exception.AiTimeoutException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +54,7 @@ public class ClaudeProvider implements AiProvider {
 	@Override
 	public String complete(String systemPrompt, String userPrompt) {
 		Map<String, Object> body = Map.of(
-			"model", props.claude().model(),
+			"model", props.claude().models().get(0),
 			"max_tokens", 4096,
 			"system", systemPrompt,
 			"messages", List.of(Map.of("role", "user", "content", userPrompt))
@@ -64,13 +65,13 @@ public class ClaudeProvider implements AiProvider {
 	@Override
 	public AiResponse complete(AiPromptRequest request, String renderedPrompt) {
 		Map<String, Object> body = Map.of(
-			"model", props.claude().model(),
+			"model", props.claude().models().get(0),
 			"max_tokens", request.maxTokens(),
 			"messages", List.of(Map.of("role", "user", "content", renderedPrompt))
 		);
 		String content = callApi(body);
 		log.debug("[Claude] 응답 수신. contentLength={}", content.length());
-		return new AiResponse(PROVIDER, props.claude().model(), content);
+		return new AiResponse(PROVIDER, props.claude().models().get(0), content);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -86,8 +87,19 @@ public class ClaudeProvider implements AiProvider {
 				.bodyValue(body)
 				.retrieve()
 				.onStatus(
+					status -> status.value() == 503,
+					response -> Mono.error(new AiServerOverloadException(PROVIDER))
+				)
+				.onStatus(
 					status -> status.value() == 429,
-					response -> Mono.error(new AiRateLimitException(PROVIDER))
+					response -> {
+						// Anthropic은 retry-after(소문자) 또는 Retry-After 헤더 사용
+						String header = response.headers().asHttpHeaders().getFirst("retry-after");
+						if (header == null) {
+							header = response.headers().asHttpHeaders().getFirst("Retry-After");
+						}
+						return Mono.error(new AiRateLimitException(PROVIDER, parseRetryAfterMs(header)));
+					}
 				)
 				.onStatus(
 					HttpStatusCode::isError,
@@ -114,13 +126,4 @@ public class ClaudeProvider implements AiProvider {
 		}
 	}
 
-	private boolean isTimeout(Throwable e) {
-		Throwable cause = e;
-		while (cause != null) {
-			if (cause instanceof java.util.concurrent.TimeoutException) return true;
-			if (cause.getClass().getSimpleName().contains("TimeoutException")) return true;
-			cause = cause.getCause();
-		}
-		return false;
-	}
 }

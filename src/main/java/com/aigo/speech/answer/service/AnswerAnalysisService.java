@@ -155,6 +155,8 @@ public class AnswerAnalysisService {
 
 		if (analysesJson != null) {
 			for (Map<String, Object> item : analysesJson) {
+				if (item.get("i") == null)
+					throw new IllegalStateException("AI 응답 파싱 실패: 분석 항목에 순서 번호(i)가 없습니다.");
 				int seq = ((Number)item.get("i")).intValue();
 				String review = (String)item.get("r");
 				int logicScore = item.get("s") != null ? ((Number)item.get("s")).intValue() : 0;

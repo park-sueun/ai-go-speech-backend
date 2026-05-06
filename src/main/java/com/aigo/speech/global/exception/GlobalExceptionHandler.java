@@ -16,6 +16,7 @@ import com.aigo.speech.auth.exception.PasswordMismatchException;
 import com.aigo.speech.auth.exception.SamePasswordException;
 import com.aigo.speech.auth.exception.TokenExpiredException;
 import com.aigo.speech.auth.exception.UserNotFoundException;
+import com.aigo.speech.curriculum.exception.UnauthorizedCurriculumException;
 import com.aigo.speech.global.dto.ApiResponse;
 import com.aigo.speech.interview.exception.InterviewReportNotFoundException;
 import com.aigo.speech.interview.exception.InterviewReportPendingException;
@@ -170,6 +171,16 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(JobPostingNotFoundException.class)
 	public ResponseEntity<ApiResponse<?>> handleJobPostingNotFound (JobPostingNotFoundException e) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(InvalidTermsAgreementException.class)
+	public ResponseEntity<ApiResponse<?>> handleInvalidTermsAgreement (InvalidTermsAgreementException e) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(UnauthorizedCurriculumException.class)
+	public ResponseEntity<ApiResponse<?>> handleIllegalArgument (UnauthorizedCurriculumException e) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(e.getMessage()));
 	}
 
 }

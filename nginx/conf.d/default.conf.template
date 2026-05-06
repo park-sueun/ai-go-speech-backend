@@ -2,7 +2,7 @@ include /etc/nginx/conf.d/service-url.inc;
 
 server {
     listen 80;
-    server_name ;
+    server_name DOMAIN_PLACEHOLDER;
 
     resolver 127.0.0.11 valid=30s;
 

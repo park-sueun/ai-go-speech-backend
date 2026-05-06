@@ -9,8 +9,13 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/log:/var/log/nginx
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
     networks:
       - app-network
+
+  certbot:
+    container_name: certbot-prod
 
   app-blue:
     image: myapp:${IMAGE_TAG}

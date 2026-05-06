@@ -5,10 +5,16 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     networks:
       - app-network
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+
+  certbot:
+    container_name: certbot-dev
 
   app-blue:
     container_name: app-blue

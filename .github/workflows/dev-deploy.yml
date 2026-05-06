@@ -52,7 +52,7 @@ jobs:
           username: ${{ secrets.DEV_EC2_USERNAME }}
           key: ${{ secrets.DEV_EC2_SSH_KEY }}
           # 전송할 파일 및 폴더 리스트 (쉼표로 구분)
-          source: "docker-compose.dev.yml,nginx"
+          source: "docker-compose.yml,docker-compose.dev.yml,nginx"
           target: "~/deploy"
 
       # EC2 접속 및 배포
@@ -72,6 +72,12 @@ jobs:
             
             # .env.dev 파일 생성
             echo "${{ secrets.DEV_ENV_FILE }}" > .env.dev
+
+            # default.conf 생성 (인증서가 있을 때만 HTTPS 설정 적용)
+            if [ -d "./certbot/conf/live/${{ vars.DEV_DOMAIN }}" ]; then
+              sed "s/DOMAIN_PLACEHOLDER/${{ vars.DEV_DOMAIN }}/g" \
+                ./nginx/conf.d/default.conf.template > ./nginx/conf.d/default.conf
+            fi
             
             # 현재 구동 중인 컨테이너 확인
             IS_BLUE=$(docker ps | grep app-blue)
@@ -112,8 +118,8 @@ jobs:
             # Nginx 트래픽 전환
             echo "set \$service_url http://app-$TARGET_COLOR:8080;" | sudo tee ./nginx/conf.d/service-url.inc
             
-            # Nginx가 항상 떠있도록 보장한 뒤 reload
-            docker compose -f docker-compose.dev.yml up -d nginx
+            # Nginx/certbot이 항상 떠있도록 보장한 뒤 reload
+            docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev up -d nginx certbot
             docker exec nginx-dev nginx -s reload
             
             # 이전 컨테이너 중지

@@ -32,13 +32,13 @@ fi
 
 echo "==> [3/5] Starting nginx with HTTP-only config for ACME challenge..."
 cat > ./nginx/conf.d/default.conf << NGINXEOF
-include /etc/nginx/conf.d/service-url.inc;
-
 server {
     listen 80;
     server_name ${DOMAIN};
 
     resolver 127.0.0.11 valid=30s;
+
+    include /etc/nginx/conf.d/service-url.inc;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -58,7 +58,8 @@ docker compose $COMPOSE $ENV_FILE up -d nginx
 sleep 3
 
 echo "==> [4/5] Requesting Let's Encrypt certificate for ${DOMAIN}..."
-docker compose $COMPOSE $ENV_FILE run --rm certbot certonly \
+docker compose $COMPOSE $ENV_FILE run --rm \
+  --entrypoint certbot certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
   --email "$EMAIL" \

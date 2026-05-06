@@ -1,5 +1,3 @@
-include /etc/nginx/conf.d/service-url.inc;
-
 server {
     listen 80;
     server_name DOMAIN_PLACEHOLDER;
@@ -25,6 +23,8 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    include /etc/nginx/conf.d/service-url.inc;
 
     location / {
         proxy_pass $service_url;

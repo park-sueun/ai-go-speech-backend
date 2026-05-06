@@ -142,23 +142,4 @@ public class GeminiProvider implements AiProvider {
 		}
 	}
 
-	/** "Retry-After: 60" 형식(초 단위)을 ms로 변환. 파싱 불가 시 -1 반환. */
-	private long parseRetryAfterMs(String header) {
-		if (header == null || header.isBlank()) return -1;
-		try {
-			return Long.parseLong(header.trim()) * 1000L;
-		} catch (NumberFormatException e) {
-			return -1;
-		}
-	}
-
-	private boolean isTimeout(Throwable e) {
-		Throwable cause = e;
-		while (cause != null) {
-			if (cause instanceof java.util.concurrent.TimeoutException) return true;
-			if (cause.getClass().getSimpleName().contains("TimeoutException")) return true;
-			cause = cause.getCause();
-		}
-		return false;
-	}
 }

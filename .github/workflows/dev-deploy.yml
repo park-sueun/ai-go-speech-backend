@@ -74,9 +74,13 @@ jobs:
             echo "${{ secrets.DEV_ENV_FILE }}" > .env.dev
 
             # default.conf 생성 (인증서가 있을 때만 HTTPS 설정 적용)
-            if [ -d "./certbot/conf/live/${{ vars.DEV_DOMAIN }}" ]; then
-              sed "s/DOMAIN_PLACEHOLDER/${{ vars.DEV_DOMAIN }}/g" \
+            CERT_DOMAIN=$(sudo ls ./certbot/conf/live/ 2>/dev/null | grep -v README | head -1)
+            if [ -n "$CERT_DOMAIN" ]; then
+              echo "SSL 인증서 발견 ($CERT_DOMAIN) - HTTPS 설정 적용"
+              sed "s/DOMAIN_PLACEHOLDER/$CERT_DOMAIN/g" \
                 ./nginx/conf.d/default.conf.template > ./nginx/conf.d/default.conf
+            else
+              echo "SSL 인증서 없음 - HTTP 설정 유지"
             fi
             
             # 현재 구동 중인 컨테이너 확인

@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 
 import com.aigo.speech.auth.jwt.JwtAuthenticationFilter;
@@ -65,6 +66,7 @@ public class SecurityConfig {
 			.sessionManagement(
 				session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // jwt 토큰 사용
 			.authorizeHttpRequests(auth -> auth
+				.dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
 				.requestMatchers(
 					"/api/auth/**",
 					"/oauth2/**",

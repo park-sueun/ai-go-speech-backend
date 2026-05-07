@@ -30,6 +30,7 @@ import com.aigo.speech.jobposting.exception.UnsupportedSiteException;
 import com.aigo.speech.mail.exception.MailSendException;
 import com.aigo.speech.mail.exception.MailVerificationException;
 import com.aigo.speech.question.exception.QuestionNotFoundException;
+import com.aigo.speech.ranking.exception.RankingUnavailableException;
 import com.aigo.speech.terms.exception.InvalidTermsAgreementException;
 
 @RestControllerAdvice
@@ -178,4 +179,8 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(e.getMessage()));
 	}
 
+	@ExceptionHandler(RankingUnavailableException.class)
+	public ResponseEntity<ApiResponse<?>> handleRankingUnavailable (RankingUnavailableException e) {
+		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ApiResponse.fail(e.getMessage()));
+	}
 }

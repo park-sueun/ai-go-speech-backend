@@ -87,12 +87,13 @@ public class RankingService {
 				RankingBackup.builder()
 					.user(user)
 					.userUuid(userUuid)
+					.jobTitle(jobTitle)
 					.bestScore(0)
 					.totalSessionCount(0)
 					.build()
 			));
 		backup.update(score);
-
+		backup.updateJobTitle(jobTitle);
 		log.info(
 			"[Ranking] 업데이트 완료. uuid={}, score={}, bestScore={}",
 			userUuid, score, backup.getBestScore()

@@ -20,8 +20,8 @@ public class RankingEventListener {
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void handleInterviewCompleted (InterviewCompletedEvent event) {
 		log.info(
-			"[RankingEvent] 수신. userUuid={}, score={}",
-			event.userUuid(), event.totalScore()
+			"[RankingEvent] 수신. userUuid={}, score={}, jobTitle={}",
+			event.userUuid(), event.totalScore(), event.jobTitle()
 		);
 		try {
 			rankingService.updateRanking(event.userUuid(), event.totalScore(), event.jobTitle());

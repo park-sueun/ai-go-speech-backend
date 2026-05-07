@@ -70,4 +70,9 @@ public class RankingBackup {
 		this.totalSessionCount++;
 	}
 
+	public void updateJobTitle (String jobTitle) {
+		if (jobTitle != null && !jobTitle.isBlank()) {
+			this.jobTitle = jobTitle;
+		}
+	}
 }

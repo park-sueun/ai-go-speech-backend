@@ -66,7 +66,7 @@ public class SecurityConfig {
 			.sessionManagement(
 				session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // jwt 토큰 사용
 			.authorizeHttpRequests(auth -> auth
-				.dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
+				.dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
 				.requestMatchers(
 					"/api/auth/**",
 					"/oauth2/**",

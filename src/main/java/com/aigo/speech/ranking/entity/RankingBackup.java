@@ -55,11 +55,12 @@ public class RankingBackup {
 	private String jobTitle;
 
 	@Builder
-	public RankingBackup (User user, UUID userUuid, int bestScore, int totalSessionCount) {
+	public RankingBackup (User user, UUID userUuid, int bestScore, int totalSessionCount, String jobTitle) {
 		this.user = user;
 		this.userUuid = userUuid;
 		this.bestScore = bestScore;
 		this.totalSessionCount = totalSessionCount;
+		this.jobTitle = jobTitle;
 	}
 
 	public void update (int newScore) {

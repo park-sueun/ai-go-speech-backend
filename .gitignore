@@ -25,3 +25,10 @@ Thumbs.db
 
 # WAR
 *.war
+
+# Let's Encrypt / Certbot (private keys must not be committed)
+certbot/conf/
+certbot/www/
+
+# Generated nginx config (created from default.conf.template by init-letsencrypt.sh or CI/CD)
+nginx/conf.d/default.conf

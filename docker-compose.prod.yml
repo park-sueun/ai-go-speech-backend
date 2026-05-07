@@ -7,10 +7,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/log:/var/log/nginx
     networks:
       - app-network
+
+  certbot:
+    container_name: certbot-prod
 
   app-blue:
     image: myapp:${IMAGE_TAG}

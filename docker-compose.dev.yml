@@ -8,8 +8,16 @@ services:
       - "443:443"
     networks:
       - app-network
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+
   certbot:
+    image: certbot/certbot
     container_name: certbot-dev
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
 
   app-blue:
     container_name: app-blue

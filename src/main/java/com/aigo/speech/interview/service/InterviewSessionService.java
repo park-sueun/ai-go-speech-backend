@@ -1,6 +1,7 @@
 package com.aigo.speech.interview.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -14,9 +15,11 @@ import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.global.sse.SseEmitterService;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
+import com.aigo.speech.interview.entity.InterviewReport;
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
+import com.aigo.speech.interview.repository.InterviewReportRepository;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
 import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.jobposting.repository.JobPostingRepository;
@@ -37,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class InterviewSessionService {
 
 	private final InterviewSessionRepository sessionRepository;
+	private final InterviewReportRepository reportRepository;
 	private final InterviewQuestionRepository questionRepository;
 	private final InterviewAnswerRepository answerRepository;
 	private final UserRepository userRepository;
@@ -74,6 +78,21 @@ public class InterviewSessionService {
 	public SseEmitter subscribeToSession (String userUuidStr, UUID sessionUuid) {
 		InterviewSession session = findByUuid(sessionUuid);
 		validateOwnership(session, userUuidStr);
+
+		InterviewReport report = reportRepository.findBySession(session).orElse(null);
+		if (report != null && report.getStatus() != InterviewReport.ReportStatus.GENERATING) {
+			SseEmitter emitter = sseEmitterService.register(sessionUuid);
+			if (report.getStatus() == InterviewReport.ReportStatus.COMPLETED) {
+				sseEmitterService.sendEvent(sessionUuid, "SESSION_ANALYSIS_DONE",
+					Map.of("sessionUuid", sessionUuid.toString()));
+			} else {
+				sseEmitterService.sendEvent(sessionUuid, "ERROR",
+					Map.of("message", "리포트 생성에 실패했습니다."));
+			}
+			sseEmitterService.complete(sessionUuid);
+			return emitter;
+		}
+
 		return sseEmitterService.register(sessionUuid);
 	}
 

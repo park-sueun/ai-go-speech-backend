@@ -1,8 +1,9 @@
 package com.aigo.speech.ai.provider;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,15 +23,15 @@ class ClaudeProviderIntegrationTest {
 
 	private static final String KAKAO_JOB_POSTING = """
 		카카오 서버 개발자 채용
-
+		
 		[담당 업무]
 		- 카카오 서비스를 위한 백엔드 서버 개발 및 운영
 		- 대용량 트래픽 처리를 위한 분산 시스템 설계
-
+		
 		[자격 요건]
 		- Java 또는 Kotlin 기반 서버 개발 경력 3년 이상
 		- Spring Framework 기반 개발 경험
-
+		
 		[기술 스택]
 		Java, Kotlin, Spring Boot, MySQL, Redis, Kafka, Kubernetes
 		""";
@@ -38,14 +39,15 @@ class ClaudeProviderIntegrationTest {
 	private ClaudeProvider claudeProvider;
 
 	@BeforeEach
-	void setUp() {
+	void setUp () {
 		String apiKey = System.getenv("CLAUDE_API_KEY");
 
 		AiProperties props = new AiProperties(
 			null,
-			new AiProperties.ProviderProperties(apiKey, "https://api.anthropic.com/v1/messages", "claude-haiku-4-5", 1, true),
+			new AiProperties.ProviderProperties(
+				apiKey, "https://api.anthropic.com/v1/messages", List.of("claude-haiku-4-5"), 1, true),
 			null,
-			new AiProperties.RetryProperties(1, 1000),
+			new AiProperties.RetryProperties(1, 1000, 500L),
 			new AiProperties.TimeoutProperties(10_000, 30_000)
 		);
 
@@ -62,12 +64,12 @@ class ClaudeProviderIntegrationTest {
 
 	@Test
 	@DisplayName("카카오 서버 개발자 공고 분석 - Claude API 직접 호출")
-	void analyzeKakaoJobPosting() {
+	void analyzeKakaoJobPosting () {
 		String userPrompt = """
 			아래 채용 공고에서 다음 정보를 JSON으로 추출해주세요:
 			companyName, position, mainTasks(배열), requirements(배열), preferred(배열), techStacks(배열)
 			JSON만 응답하세요.
-
+			
 			%s
 			""".formatted(KAKAO_JOB_POSTING);
 

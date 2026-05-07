@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,8 @@ import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
 import com.aigo.speech.interview.repository.InterviewReportRepository;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
+import com.aigo.speech.ranking.event.InterviewCompletedEvent;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.json.JsonReadFeature;
@@ -54,6 +57,7 @@ public class AnswerAnalysisService {
 	private final InterviewReportRepository reportRepository;
 	private final AiService aiService;
 	private final SseEmitterService sseEmitterService;
+	private final ApplicationEventPublisher eventPublisher;
 
 	// self-injection: @Transactional 메서드를 프록시 경유 호출하기 위함
 	@Autowired
@@ -67,7 +71,7 @@ public class AnswerAnalysisService {
 	 */
 	@Async("answerExecutor")
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void generateAllAnalysesAndReport(Long sessionId) {
+	public void generateAllAnalysesAndReport (Long sessionId) {
 		AllAnalysisContext ctx = self.loadAllAnalysisContext(sessionId);
 		if (ctx == null) {
 			log.info("[CombinedAnalysis] 이미 처리 중이거나 완료된 세션. sessionId={}", sessionId);
@@ -97,7 +101,7 @@ public class AnswerAnalysisService {
 	 * 1단계: DB 읽기 + GENERATING 리포트 선삽입. 이미 처리 중이면 null 반환.
 	 */
 	@Transactional
-	public AllAnalysisContext loadAllAnalysisContext(Long sessionId) {
+	public AllAnalysisContext loadAllAnalysisContext (Long sessionId) {
 		InterviewSession session = sessionRepository.findById(sessionId)
 			.orElseThrow(() -> new IllegalStateException("면접 세션을 찾을 수 없습니다: " + sessionId));
 
@@ -135,11 +139,13 @@ public class AnswerAnalysisService {
 	 * 2단계: AI 응답 파싱 후 AnswerAnalysis 5개 + InterviewReport 저장.
 	 */
 	@Transactional
-	public void saveAllAnalysesAndReport(Long sessionId, AllAnalysisContext ctx, AiResponse response) {
+	public void saveAllAnalysesAndReport (Long sessionId, AllAnalysisContext ctx, AiResponse response) {
 		Map<String, Object> parsed;
 		try {
-			parsed = LENIENT_MAPPER.readValue(response.content(), new TypeReference<Map<String, Object>>() {
-			});
+			parsed = LENIENT_MAPPER.readValue(
+				response.content(), new TypeReference<Map<String, Object>>() {
+				}
+			);
 		} catch (Exception e) {
 			throw new IllegalStateException("AI 응답 파싱 실패: " + e.getMessage(), e);
 		}
@@ -189,12 +195,20 @@ public class AnswerAnalysisService {
 			summary != null ? summary.trim() : "",
 			totalSilence / cnt, totalFiller / cnt, totalLogic / cnt, totalTotal / cnt
 		);
+
+		eventPublisher.publishEvent(
+			new InterviewCompletedEvent(
+				report.getSession().getUser().getUuid(),
+				report.getTotalScore(),
+				report.getSession().getJobPosting().getPosition()
+			)
+		);
 	}
 
 	// ── 리포트 실패 처리 ───────────────────────────────────────────────────────
 
 	@Transactional
-	public void markReportFailed(Long sessionId) {
+	public void markReportFailed (Long sessionId) {
 		InterviewSession session = sessionRepository.findById(sessionId).orElse(null);
 		if (session == null)
 			return;
@@ -203,7 +217,7 @@ public class AnswerAnalysisService {
 
 	// ── 조회 API ───────────────────────────────────────────────────────────────
 
-	public AnswerAnalysisResponse getByUuid(UUID analysisUuid, String userUuidStr) {
+	public AnswerAnalysisResponse getByUuid (UUID analysisUuid, String userUuidStr) {
 		AnswerAnalysis analysis = analysisRepository.findByUuid(analysisUuid)
 			.orElseThrow(() -> new AnswerAnalysisNotFoundException("답변 분석을 찾을 수 없습니다."));
 
@@ -215,7 +229,7 @@ public class AnswerAnalysisService {
 		return AnswerAnalysisResponse.from(analysis);
 	}
 
-	public List<AnswerAnalysisResponse> getBySessionUuid(UUID sessionUuid, String userUuidStr) {
+	public List<AnswerAnalysisResponse> getBySessionUuid (UUID sessionUuid, String userUuidStr) {
 		InterviewSession session = sessionRepository.findByUuid(sessionUuid)
 			.orElseThrow(() -> new InterviewSessionNotFoundException("면접 세션을 찾을 수 없습니다."));
 
@@ -250,7 +264,7 @@ public class AnswerAnalysisService {
 
 	// ── 유틸 ───────────────────────────────────────────────────────────────────
 
-	private String buildCombinedAnswersText(List<AnswerStat> stats) {
+	private String buildCombinedAnswersText (List<AnswerStat> stats) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < stats.size(); i++) {
 			AnswerStat stat = stats.get(i);
@@ -268,7 +282,8 @@ public class AnswerAnalysisService {
 
 			Map<String, Integer> f = stat.fillerWordCounts();
 			String silenceInfo = (stat.totalSilenceDurationMs() / 1000) + "s/" + stat.silenceCount() + "회";
-			String fillerInfo = "음" + f.getOrDefault("음", 0) + " 어" + f.getOrDefault("어", 0) + " 그" + f.getOrDefault("그", 0);
+			String fillerInfo =
+				"음" + f.getOrDefault("음", 0) + " 어" + f.getOrDefault("어", 0) + " 그" + f.getOrDefault("그", 0);
 
 			sb.append("[").append(stat.sequenceOrder()).append("] Q: ")
 				.append(stat.answer().getQuestion().getContent()).append("\n");
@@ -282,7 +297,7 @@ public class AnswerAnalysisService {
 		return sb.toString();
 	}
 
-	private Map<String, Integer> countFillerWords(List<String> fillerWords) {
+	private Map<String, Integer> countFillerWords (List<String> fillerWords) {
 		List<String> targets = List.of("음", "어", "그");
 		if (fillerWords == null || fillerWords.isEmpty()) {
 			return targets.stream().collect(Collectors.toMap(k -> k, k -> 0));
@@ -292,19 +307,19 @@ public class AnswerAnalysisService {
 		);
 	}
 
-	private int sumSilenceDuration(List<TimePeriod> periods) {
+	private int sumSilenceDuration (List<TimePeriod> periods) {
 		if (periods == null)
 			return 0;
 		return periods.stream().mapToInt(p -> p.endMs() - p.startMs()).sum();
 	}
 
-	private int calcSilenceScore(Integer totalSilenceDurationMs, Integer silenceCount) {
+	private int calcSilenceScore (Integer totalSilenceDurationMs, Integer silenceCount) {
 		int durationSec = totalSilenceDurationMs / 1000;
 		int deduction = Math.max(0, durationSec - 5 * silenceCount);
 		return Math.max(0, 100 - deduction);
 	}
 
-	private int calcFillerScore(Map<String, Integer> fillerWordCounts) {
+	private int calcFillerScore (Map<String, Integer> fillerWordCounts) {
 		int totalFillers = fillerWordCounts.values().stream().mapToInt(Integer::intValue).sum();
 		return Math.max(0, 100 - totalFillers);
 	}

@@ -80,21 +80,17 @@ public class InterviewSessionService {
 		validateOwnership(session, userUuidStr);
 
 		InterviewReport report = reportRepository.findBySession(session).orElse(null);
-		if (report != null) {
+		if (report != null && report.getStatus() != InterviewReport.ReportStatus.GENERATING) {
+			SseEmitter emitter = sseEmitterService.register(sessionUuid);
 			if (report.getStatus() == InterviewReport.ReportStatus.COMPLETED) {
-				SseEmitter emitter = sseEmitterService.register(sessionUuid);
 				sseEmitterService.sendEvent(sessionUuid, "SESSION_ANALYSIS_DONE",
 					Map.of("sessionUuid", sessionUuid.toString()));
-				sseEmitterService.complete(sessionUuid);
-				return emitter;
-			}
-			if (report.getStatus() == InterviewReport.ReportStatus.FAILED) {
-				SseEmitter emitter = sseEmitterService.register(sessionUuid);
+			} else {
 				sseEmitterService.sendEvent(sessionUuid, "ERROR",
 					Map.of("message", "리포트 생성에 실패했습니다."));
-				sseEmitterService.complete(sessionUuid);
-				return emitter;
 			}
+			sseEmitterService.complete(sessionUuid);
+			return emitter;
 		}
 
 		return sseEmitterService.register(sessionUuid);

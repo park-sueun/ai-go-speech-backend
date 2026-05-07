@@ -8,8 +8,6 @@ services:
       - "443:443"
     networks:
       - app-network
-  certbot:
-    container_name: certbot-dev
 
   app-blue:
     container_name: app-blue

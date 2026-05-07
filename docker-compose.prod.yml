@@ -11,9 +11,6 @@ services:
     networks:
       - app-network
 
-  certbot:
-    container_name: certbot-prod
-
   app-blue:
     image: myapp:${IMAGE_TAG}
     container_name: app-blue

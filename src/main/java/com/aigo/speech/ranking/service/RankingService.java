@@ -34,7 +34,7 @@ public class RankingService {
 
 	private static final int TOP_N = 100;
 
-	public RankingListResponse getRankings (UUID UserUuid) {
+	public RankingListResponse getRankings (UUID userUuid) {
 		if (rankingRepository.getTotalCount() == 0) {
 			log.warn("[Ranking] Redis 데이터없음 >> DB warm-up 시작");
 			warmUpFromDb();
@@ -71,8 +71,8 @@ public class RankingService {
 			));
 		}
 
-		RankingListResponse.MyRankingResponse myRanking = buildMyRanking(UserUuid, userMap, backupMap);
-		log.info("[Ranking] 조회 완료. myUuid={}, totalCount={}", UserUuid, totalCount);
+		RankingListResponse.MyRankingResponse myRanking = buildMyRanking(userUuid, userMap, backupMap);
+		log.info("[Ranking] 조회 완료. myUuid={}, totalCount={}", userUuid, totalCount);
 		return new RankingListResponse(myRanking, ranking, totalCount);
 	}
 

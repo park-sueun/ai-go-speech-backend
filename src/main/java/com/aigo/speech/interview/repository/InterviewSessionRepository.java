@@ -7,9 +7,14 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.aigo.speech.interview.entity.InterviewSession;
+import com.aigo.speech.interview.entity.InterviewStatus;
+import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.user.entity.User;
 
 public interface InterviewSessionRepository extends JpaRepository<InterviewSession, Long> {
 	Optional<InterviewSession> findByUuid(UUID uuid);
 	List<InterviewSession> findByUserOrderByCreatedAtDesc(User user);
+	boolean existsByUserAndJobPostingAndStatus(User user, JobPosting jobPosting, InterviewStatus status);
+	long countByUserAndJobPostingAndStatus(User user, JobPosting jobPosting, InterviewStatus status);
+	List<InterviewSession> findByUserAndJobPostingOrderByCreatedAtAsc(User user, JobPosting jobPosting);
 }

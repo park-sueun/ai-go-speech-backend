@@ -14,7 +14,5 @@ public class CreateSessionRequest {
 	@NotNull(message = "채용 공고 UUID를 입력해주세요.")
 	private UUID jobPostingUuid;
 
-	private boolean retry;
-
 	private LocalDate interviewDate;
 }

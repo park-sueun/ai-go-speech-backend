@@ -53,8 +53,13 @@ public class InterviewSession extends BaseTimeEntity {
 	@JoinColumn(name = "job_posting_id", nullable = true)
 	private JobPosting jobPosting;
 
+	// 생성 시 COMPLETED 세션 존재 여부로 서버가 결정
 	@Column(name = "retry", nullable = false)
 	private boolean retry;
+
+	// 재시도 회차 — 완료 시점에 설정. retry=false 이면 null
+	@Column(name = "attempt_number")
+	private Integer attemptNumber;
 
 	@Column(name = "interview_date")
 	private LocalDate interviewDate;
@@ -94,5 +99,10 @@ public class InterviewSession extends BaseTimeEntity {
 		}
 		this.status = InterviewStatus.ABANDONED;
 		this.endedAt = LocalDateTime.now();
+	}
+
+	// 완료 후 재시도 회차 기록 (retry=true인 세션에만 호출)
+	public void assignAttemptNumber (int attemptNumber) {
+		this.attemptNumber = attemptNumber;
 	}
 }

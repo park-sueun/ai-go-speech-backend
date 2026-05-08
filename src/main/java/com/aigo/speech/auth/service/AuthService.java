@@ -144,14 +144,10 @@ public class AuthService {
 	}
 
 	@Transactional
-	public void logout (String accessToken) {
-
-		UUID uuid = jwtTokenProvider.getUuid(accessToken);
-
-		User user = userRepository.findByUuid(uuid)
+	public void logout (UUID userUuid) {
+		User user = userRepository.findByUuid(userUuid)
 			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
-
-		user.updateRefreshToken(null); // 세션 만료
+		user.updateRefreshToken(null);
 	}
 
 }

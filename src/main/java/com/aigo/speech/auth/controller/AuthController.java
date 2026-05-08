@@ -1,6 +1,5 @@
 package com.aigo.speech.auth.controller;
 
-import com.aigo.speech.auth.exception.InvalidTokenException;
 import java.util.UUID;
 
 import org.springframework.http.ResponseCookie;
@@ -9,7 +8,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,6 +25,7 @@ import com.aigo.speech.auth.service.PasswordResetService;
 import com.aigo.speech.global.dto.ApiResponse;
 
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -58,25 +57,21 @@ public class AuthController {
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
+	/**
+	 * 로그아웃
+	 * - 자체 로그인: Authorization 헤더로 토큰 전달
+	 * - 소셜 로그인: HttpOnly 쿠키로 토큰이 자동 전달됨
+	 * JwtAuthenticationFilter가 둘 다 처리하므로 @AuthenticationPrincipal로 UUID를 가져옴
+	 */
 	@PostMapping("/logout")
 	public ResponseEntity<ApiResponse<String>> logout (
-		@RequestHeader(value = "Authorization") String bearerToken,
-		HttpServletResponse httpResponse
+		@Parameter(hidden = true) @AuthenticationPrincipal String userUuid,
+		HttpServletRequest request,
+		HttpServletResponse response
 	) {
-		if (!bearerToken.startsWith("Bearer ")) {
-			throw new InvalidTokenException("유효하지 않은 인증 헤더입니다.");
-		}
+		authService.logout(UUID.fromString(userUuid));
 
-		String accessToken = bearerToken.substring(7);
-		authService.logout(accessToken);
-
-		// OAuth2 로그인 쿠키 클리어
-		ResponseCookie clearAccess = ResponseCookie.from("accessToken", "")
-			.httpOnly(true).secure(true).sameSite("Lax").path("/").maxAge(0).build();
-		ResponseCookie clearRefresh = ResponseCookie.from("refreshToken", "")
-			.httpOnly(true).secure(true).sameSite("Lax").path("/").maxAge(0).build();
-		httpResponse.addHeader("Set-Cookie", clearAccess.toString());
-		httpResponse.addHeader("Set-Cookie", clearRefresh.toString());
+		clearAuthCookies(response);
 
 		return ResponseEntity.ok(ApiResponse.success("로그아웃 성공"));
 	}
@@ -136,6 +131,15 @@ public class AuthController {
 			request.confirmPassword()
 		);
 		return ResponseEntity.ok(ApiResponse.success(null));
+	}
+
+	private void clearAuthCookies (HttpServletResponse response) {
+		ResponseCookie clearAccess = ResponseCookie.from("accessToken", "")
+			.httpOnly(true).secure(true).sameSite("Lax").path("/").maxAge(0).build();
+		ResponseCookie clearRefresh = ResponseCookie.from("refreshToken", "")
+			.httpOnly(true).secure(true).sameSite("Lax").path("/").maxAge(0).build();
+		response.addHeader("Set-Cookie", clearAccess.toString());
+		response.addHeader("Set-Cookie", clearRefresh.toString());
 	}
 
 }

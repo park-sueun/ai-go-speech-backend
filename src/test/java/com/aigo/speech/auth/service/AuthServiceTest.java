@@ -199,10 +199,9 @@ class AuthServiceTest {
 	void logout_clearsRefreshToken () {
 		User user = User.builder().email(EMAIL).password(ENCODED_PASSWORD).build();
 		user.updateRefreshToken("refresh-token");
-		given(jwtTokenProvider.getUuid("access-token")).willReturn(USER_UUID);
 		given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));
 
-		authService.logout("access-token");
+		authService.logout(USER_UUID);
 
 		assertThat(user.getRefreshToken()).isNull();
 	}

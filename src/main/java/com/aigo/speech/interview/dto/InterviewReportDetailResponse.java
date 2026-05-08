@@ -13,6 +13,7 @@ import com.aigo.speech.jobposting.entity.JobPosting;
 
 public record InterviewReportDetailResponse(
 	UUID sessionUuid,
+	UUID jobPostingUuid,
 	String companyName,
 	String position,
 	LocalDate interviewDate,
@@ -31,6 +32,7 @@ public record InterviewReportDetailResponse(
 		JobPosting jp = session.getJobPosting();
 		return new InterviewReportDetailResponse(
 			session.getUuid(),
+			jp != null ? jp.getUuid() : null,
 			jp != null ? jp.getCompanyName() : null,
 			jp != null ? jp.getPosition() : null,
 			session.getInterviewDate(),

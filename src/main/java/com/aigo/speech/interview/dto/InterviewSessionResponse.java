@@ -13,6 +13,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public record InterviewSessionResponse(
 	UUID uuid,
 	String status,
+	boolean isRetry,
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	Integer attemptNumber,
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	UUID jobPostingUuid,
 	LocalDate interviewDate,
 	LocalDateTime startedAt,
 	LocalDateTime endedAt,
@@ -25,6 +30,9 @@ public record InterviewSessionResponse(
 		return new InterviewSessionResponse(
 			session.getUuid(),
 			session.getStatus().name(),
+			session.isRetry(),
+			session.getAttemptNumber(),
+			session.getJobPosting() != null ? session.getJobPosting().getUuid() : null,
 			session.getInterviewDate(),
 			session.getStartedAt(),
 			session.getEndedAt(),

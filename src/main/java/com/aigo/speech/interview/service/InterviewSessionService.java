@@ -17,6 +17,7 @@ import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
 import com.aigo.speech.interview.entity.InterviewReport;
 import com.aigo.speech.interview.entity.InterviewSession;
+import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.exception.InterviewSessionNotFoundException;
 import com.aigo.speech.interview.exception.InvalidSessionStatusException;
 import com.aigo.speech.interview.repository.InterviewReportRepository;
@@ -56,8 +57,11 @@ public class InterviewSessionService {
 		JobPosting jobPosting = jobPostingRepository.findByUuid(request.getJobPostingUuid())
 			.orElseThrow(() -> new InterviewSessionNotFoundException("채용 공고를 찾을 수 없습니다."));
 
+		boolean isRetry = sessionRepository.existsByUserAndJobPostingAndStatus(
+			user, jobPosting, InterviewStatus.COMPLETED
+		);
 		InterviewSession session = new InterviewSession(
-			user, jobPosting, request.isRetry(), request.getInterviewDate()
+			user, jobPosting, isRetry, request.getInterviewDate()
 		);
 		session = sessionRepository.save(session);
 
@@ -127,6 +131,14 @@ public class InterviewSessionService {
 		}
 
 		session.complete();
+
+		if (session.isRetry()) {
+			long completedCount = sessionRepository.countByUserAndJobPostingAndStatus(
+				session.getUser(), session.getJobPosting(), InterviewStatus.COMPLETED
+			);
+			// 완료된 세션 수 - 1 = 재시도 회차 (1st retry=1, 2nd retry=2, ...)
+			session.assignAttemptNumber((int) completedCount - 1);
+		}
 
 		return InterviewSessionResponse.from(session, null);
 	}

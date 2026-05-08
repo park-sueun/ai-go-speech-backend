@@ -3,6 +3,7 @@ package com.aigo.speech.question.service;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -47,7 +48,7 @@ public class InterviewQuestionService {
 		UUID sessionUuid = session.getUuid();
 
 		try {
-			List<String> questions = generateQuestions(session.getJobPosting());
+			List<String> questions = generateQuestions(session);
 
 			for (int i = 0; i < questions.size(); i++) {
 				questionRepository.save(new InterviewQuestion(session, questions.get(i), i + 1));
@@ -72,10 +73,12 @@ public class InterviewQuestionService {
 		}
 	}
 
-	private List<String> generateQuestions(JobPosting jobPosting) {
-		// {{previousQuestions}}는 재시도 시 이전 질문 목록을 주입하는 자리 — 첫 생성 시 "없음"으로 치환
+	private List<String> generateQuestions(InterviewSession session) {
+		String previousQuestionsText = resolvePreviousQuestions(session);
+		JobPosting jobPosting = session.getJobPosting();
+
 		String template = PromptTemplate.INTERVIEW_QUESTION_V1.getContent()
-			.replace("{{previousQuestions}}", "없음");
+			.replace("{{previousQuestions}}", previousQuestionsText);
 
 		AiPromptRequest request = AiPromptRequest.of(
 			template,
@@ -98,6 +101,22 @@ public class InterviewQuestionService {
 		} catch (Exception e) {
 			throw new RuntimeException("질문 응답 파싱 실패: " + e.getMessage());
 		}
+	}
+
+	private String resolvePreviousQuestions(InterviewSession session) {
+		if (!session.isRetry()) {
+			return "없음";
+		}
+		List<InterviewSession> previousSessions = sessionRepository
+			.findByUserAndJobPostingOrderByCreatedAtAsc(session.getUser(), session.getJobPosting());
+
+		String questions = previousSessions.stream()
+			.filter(s -> !s.getId().equals(session.getId()))
+			.flatMap(s -> questionRepository.findBySessionOrderBySequenceOrderAsc(s).stream())
+			.map(q -> "- " + q.getContent())
+			.collect(Collectors.joining("\n"));
+
+		return questions.isBlank() ? "없음" : questions;
 	}
 
 	private String join(List<String> list) {

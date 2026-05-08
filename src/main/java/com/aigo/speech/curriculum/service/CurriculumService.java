@@ -61,26 +61,32 @@ public class CurriculumService {
 			.stream().map(CurriculumResponse::from).toList();
 	}
 
-	public List<CurriculumResponse> getCurriculumsBySchedule (UUID userUuid, UUID scheduleUuid) {
+	public List<CurriculumResponse> getCurriculumsBySchedule (UUID userUuid, UUID scheduleUuid, LocalDate date) {
 		InterviewSchedule schedule = interviewScheduleRepository.findByUuid(scheduleUuid)
 			.orElseThrow(() -> new IllegalArgumentException("해당 일정을 찾을 수 없습니다."));
 
 		if (!schedule.getUser().getUuid().equals(userUuid)) {
 			throw new UnauthorizedCurriculumException("해당 일정을 조회할 권한이 없습니다.");
 		}
-		return curriculumRepository.findByInterviewScheduleOrderByScheduleDateAsc(schedule)
-			.stream()
-			.limit(5)
+		List<Curriculum> curriculums = curriculumRepository
+			.findByInterviewScheduleOrderByScheduleDateAsc(schedule);
+
+		if (date != null) {
+			curriculums = curriculums.stream()
+				.filter(c -> c.getScheduleDate().equals(date))
+				.toList();
+		}
+
+		return curriculums.stream()
 			.map(CurriculumResponse::from)
 			.toList();
 	}
 
-	public List<CurriculumResponse> getTodayCurriculums (UUID userUuid) {
+	public List<CurriculumResponse> getCurriculumsByDate (UUID userUuid, LocalDate date) {
 		User user = userRepository.findByUuid(userUuid)
 			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사람입니다."));
-		LocalDate today = LocalDate.now();
 
-		return curriculumRepository.findByUserIdAndScheduleDate(user.getId(), today)
+		return curriculumRepository.findByUserUuidAndScheduleDate(userUuid, date)
 			.stream().map(CurriculumResponse::from).toList();
 	}
 

@@ -8,6 +8,7 @@ import com.aigo.speech.curriculum.entity.Curriculum;
 public record CurriculumResponse(
 	UUID uuid,
 	UUID jobPostingUuid,
+	String companyName,
 	String content,
 	LocalDate scheduledDate,
 	boolean isPast
@@ -23,6 +24,7 @@ public record CurriculumResponse(
 		return new CurriculumResponse(
 			curriculum.getUuid(),
 			jobPostingUuid,
+			curriculum.getInterviewSchedule().getCompanyName(),
 			curriculum.getContent().getTitle(),
 			curriculum.getScheduleDate(),
 			isPast

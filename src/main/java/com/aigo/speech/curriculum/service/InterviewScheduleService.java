@@ -1,5 +1,6 @@
 package com.aigo.speech.curriculum.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,7 +60,9 @@ public class InterviewScheduleService {
 	public InterviewScheduleResponse getSchedule (UUID userUuid, UUID scheduleUuid) {
 		InterviewSchedule schedule = findSchedule(scheduleUuid);
 		validateOwner(schedule, userUuid);
-		List<CurriculumResponse> curriculums = curriculumService.getCurriculumsBySchedule(userUuid, scheduleUuid);
+		List<CurriculumResponse> curriculums = curriculumService.getCurriculumsBySchedule(
+			userUuid, scheduleUuid, null
+		);
 		return InterviewScheduleResponse.of(schedule, curriculums);
 	}
 
@@ -81,7 +84,8 @@ public class InterviewScheduleService {
 			return InterviewScheduleResponse.of(schedule, curriculums);
 		}
 
-		List<CurriculumResponse> curriculums = curriculumService.getCurriculumsBySchedule(userUuid, scheduleUuid);
+		List<CurriculumResponse> curriculums = curriculumService.getCurriculumsBySchedule(
+			userUuid, scheduleUuid, LocalDate.now());
 		return InterviewScheduleResponse.of(schedule, curriculums);
 	}
 

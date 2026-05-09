@@ -10,6 +10,7 @@ public record RankingListResponse(
 	public record RankingItemResponse(
 		long rank,
 		String nickname,
+		String profileImageUrl,
 		String jobTitle,
 		double bestScore,
 		int totalSessionCount
@@ -19,6 +20,7 @@ public record RankingListResponse(
 	public record MyRankingResponse(
 		long rank,
 		String nickname,
+		String profileImageUrl,
 		String jobTitle,
 		int bestScore,
 		int totalSessionCount

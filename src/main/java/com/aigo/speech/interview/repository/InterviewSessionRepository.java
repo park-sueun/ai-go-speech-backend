@@ -14,6 +14,7 @@ import com.aigo.speech.user.entity.User;
 public interface InterviewSessionRepository extends JpaRepository<InterviewSession, Long> {
 	Optional<InterviewSession> findByUuid(UUID uuid);
 	List<InterviewSession> findByUserOrderByCreatedAtDesc(User user);
+	List<InterviewSession> findByUserAndStatusOrderByCreatedAtDesc(User user, InterviewStatus status);
 	boolean existsByUserAndJobPostingAndStatus(User user, JobPosting jobPosting, InterviewStatus status);
 	long countByUserAndJobPostingAndStatus(User user, JobPosting jobPosting, InterviewStatus status);
 	List<InterviewSession> findByUserAndJobPostingOrderByCreatedAtAsc(User user, JobPosting jobPosting);

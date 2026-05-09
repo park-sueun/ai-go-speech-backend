@@ -55,14 +55,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 		ResponseCookie accessCookie = ResponseCookie.from("accessToken", accessToken)
 			.httpOnly(true)
 			.secure(true)
-			.sameSite("Lax")
+			.sameSite("None")
 			.path("/")
 			.maxAge(jwtTokenProvider.getAccessTokenExpiration() / 1000)
 			.build();
 		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
 			.httpOnly(true)
 			.secure(true)
-			.sameSite("Lax")
+			.sameSite("None")
 			.path("/")
 			.maxAge(jwtTokenProvider.getRefreshTokenExpiration() / 1000)
 			.build();

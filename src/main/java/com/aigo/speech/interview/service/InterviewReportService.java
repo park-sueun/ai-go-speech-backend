@@ -16,6 +16,7 @@ import com.aigo.speech.interview.dto.InterviewReportSummaryResponse;
 import com.aigo.speech.interview.entity.InterviewReport;
 import com.aigo.speech.interview.entity.InterviewReport.ReportStatus;
 import com.aigo.speech.interview.entity.InterviewSession;
+import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.exception.InterviewReportPendingException;
 import com.aigo.speech.interview.repository.InterviewReportRepository;
 import com.aigo.speech.interview.repository.InterviewSessionRepository;
@@ -41,7 +42,7 @@ public class InterviewReportService {
 		User user = userRepository.findByUuid(UUID.fromString(userUuidStr))
 			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
 
-		List<InterviewSession> sessions = sessionRepository.findByUserOrderByCreatedAtDesc(user);
+		List<InterviewSession> sessions = sessionRepository.findByUserAndStatusOrderByCreatedAtDesc(user, InterviewStatus.COMPLETED);
 
 		Map<Long, InterviewReport> reportBySessionId = reportRepository.findBySessionIn(sessions)
 			.stream()

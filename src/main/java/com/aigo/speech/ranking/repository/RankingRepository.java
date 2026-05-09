@@ -42,8 +42,11 @@ public class RankingRepository {
 	}
 
 	public Long getMyRank (UUID userUuid) {
-		Long rank = redisTemplate.opsForZSet().reverseRank(RANKING_KEY, userUuid.toString());
-		return rank != null ? rank + 1 : null;
+		Double myScore = getMyScore(userUuid);
+		if (myScore == null) return null;
+		// 내 점수보다 높은 사람 수 + 1 = 동점 처리된 내 순위
+		Long above = redisTemplate.opsForZSet().count(RANKING_KEY, myScore + 1, Double.MAX_VALUE);
+		return above != null ? above + 1 : 1L;
 	}
 
 	public Double getMyScore (UUID userUuid) {

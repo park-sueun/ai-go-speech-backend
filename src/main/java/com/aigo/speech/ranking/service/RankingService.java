@@ -1,5 +1,7 @@
 package com.aigo.speech.ranking.service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -30,30 +32,31 @@ public class RankingService {
 	private static final int TOP_N = 100;
 
 	public RankingListResponse getRankings (UUID userUuid) {
-		List<RankingBackup> all = rankingBackupRepository.findAllOrderByBestScoreDesc();
-		long totalCount = all.size();
+		LocalDate currentMonday = LocalDate.now().with(DayOfWeek.MONDAY);
+		List<RankingBackup> weekly = rankingBackupRepository.findWeeklyTopOrderByWeeklyScoreDesc(currentMonday);
+		long totalCount = weekly.size();
 
-		List<RankingItemResponse> ranking = buildRankingList(all);
-		RankingListResponse.MyRankingResponse myRanking = buildMyRanking(userUuid, all);
+		List<RankingItemResponse> ranking = buildRankingList(weekly);
+		RankingListResponse.MyRankingResponse myRanking = buildMyRanking(userUuid, weekly, currentMonday);
 
-		log.info("[Ranking] 조회 완료. myUuid={}, totalCount={}", userUuid, totalCount);
+		log.info("[Ranking] 조회 완료. myUuid={}, week={}, totalCount={}", userUuid, currentMonday, totalCount);
 		return new RankingListResponse(myRanking, ranking, totalCount);
 	}
 
-	private List<RankingItemResponse> buildRankingList (List<RankingBackup> all) {
+	private List<RankingItemResponse> buildRankingList (List<RankingBackup> weekly) {
 		List<RankingItemResponse> ranking = new ArrayList<>();
 		long position = 0;
 		long currentRank = 0;
 		int prevScore = Integer.MIN_VALUE;
-		int limit = Math.min(all.size(), TOP_N);
+		int limit = Math.min(weekly.size(), TOP_N);
 
 		for (int i = 0; i < limit; i++) {
-			RankingBackup backup = all.get(i);
+			RankingBackup backup = weekly.get(i);
 			position++;
 
-			if (backup.getBestScore() != prevScore) {
+			if (backup.getWeeklyScore() != prevScore) {
 				currentRank = position;
-				prevScore = backup.getBestScore();
+				prevScore = backup.getWeeklyScore();
 			}
 
 			Profile profile = backup.getUser().getProfile();
@@ -62,7 +65,7 @@ public class RankingService {
 				profile.getNickname(),
 				profile.getProfileImageUrl(),
 				backup.getJobTitle(),
-				backup.getBestScore(),
+				backup.getWeeklyScore(),
 				backup.getTotalSessionCount()
 			));
 		}
@@ -86,6 +89,7 @@ public class RankingService {
 					.build()
 			));
 		backup.update(score);
+		backup.updateWeeklyScore(score);
 		backup.updateJobTitle(jobTitle);
 		log.info(
 			"[Ranking] 업데이트 완료. uuid={}, score={}, bestScore={}",
@@ -102,15 +106,17 @@ public class RankingService {
 	}
 
 	/* 내 순위 정보 빌드 */
-	private RankingListResponse.MyRankingResponse buildMyRanking (UUID myUuid, List<RankingBackup> all) {
-		RankingBackup myBackup = all.stream()
+	private RankingListResponse.MyRankingResponse buildMyRanking (
+		UUID myUuid, List<RankingBackup> weekly, LocalDate currentMonday
+	) {
+		RankingBackup myBackup = weekly.stream()
 			.filter(b -> b.getUserUuid().equals(myUuid))
 			.findFirst()
 			.orElse(null);
 
 		if (myBackup == null) return null;
 
-		long above = rankingBackupRepository.countHigherThan(myUuid);
+		long above = rankingBackupRepository.countHigherWeeklyScore(currentMonday, myBackup.getWeeklyScore());
 		Profile profile = myBackup.getUser().getProfile();
 
 		return new RankingListResponse.MyRankingResponse(
@@ -118,7 +124,7 @@ public class RankingService {
 			profile.getNickname(),
 			profile.getProfileImageUrl(),
 			myBackup.getJobTitle(),
-			myBackup.getBestScore(),
+			myBackup.getWeeklyScore(),
 			myBackup.getTotalSessionCount()
 		);
 	}

@@ -1,5 +1,7 @@
 package com.aigo.speech.ranking.entity;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -54,6 +56,12 @@ public class RankingBackup {
 	@Column(name = "job_title")
 	private String jobTitle;
 
+	@Column(name = "weekly_score", nullable = false)
+	private int weeklyScore;
+
+	@Column(name = "week_start_date")
+	private LocalDate weekStartDate;
+
 	@Builder
 	public RankingBackup (User user, UUID userUuid, int bestScore, int totalSessionCount, String jobTitle) {
 		this.user = user;
@@ -61,6 +69,7 @@ public class RankingBackup {
 		this.bestScore = bestScore;
 		this.totalSessionCount = totalSessionCount;
 		this.jobTitle = jobTitle;
+		this.weeklyScore = 0;
 	}
 
 	public void update (int newScore) {
@@ -68,6 +77,17 @@ public class RankingBackup {
 			this.bestScore = newScore;
 		}
 		this.totalSessionCount++;
+	}
+
+	public void updateWeeklyScore (int newScore) {
+		LocalDate currentMonday = LocalDate.now().with(DayOfWeek.MONDAY);
+		if (!currentMonday.equals(this.weekStartDate)) {
+			this.weekStartDate = currentMonday;
+			this.weeklyScore = 0;
+		}
+		if (newScore > this.weeklyScore) {
+			this.weeklyScore = newScore;
+		}
 	}
 
 	public void updateJobTitle (String jobTitle) {

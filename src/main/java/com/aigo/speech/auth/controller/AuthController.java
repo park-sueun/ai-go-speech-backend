@@ -135,9 +135,9 @@ public class AuthController {
 
 	private void clearAuthCookies (HttpServletResponse response) {
 		ResponseCookie clearAccess = ResponseCookie.from("accessToken", "")
-			.httpOnly(true).secure(true).sameSite("Lax").path("/").maxAge(0).build();
+			.httpOnly(true).secure(true).sameSite("None").path("/").maxAge(0).build();
 		ResponseCookie clearRefresh = ResponseCookie.from("refreshToken", "")
-			.httpOnly(true).secure(true).sameSite("Lax").path("/").maxAge(0).build();
+			.httpOnly(true).secure(true).sameSite("None").path("/").maxAge(0).build();
 		response.addHeader("Set-Cookie", clearAccess.toString());
 		response.addHeader("Set-Cookie", clearRefresh.toString());
 	}

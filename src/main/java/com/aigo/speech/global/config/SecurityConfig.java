@@ -22,6 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import com.aigo.speech.auth.jwt.JwtAuthenticationFilter;
 import com.aigo.speech.auth.jwt.JwtTokenProvider;
+import com.aigo.speech.auth.oauth2.OAuth2FailureHandler;
 import com.aigo.speech.auth.oauth2.OAuth2SuccessHandler;
 import com.aigo.speech.auth.service.CustomOAuth2UserService;
 
@@ -35,6 +36,7 @@ public class SecurityConfig {
 	private final JwtTokenProvider jwtTokenProvider;
 	private final CustomOAuth2UserService customOAuth2UserService;
 	private final OAuth2SuccessHandler oAuth2SuccessHandler;
+	private final OAuth2FailureHandler oAuth2FailureHandler;
 
 	@Value("${cors.allowed-origins}")
 	private String allowedOrigins;
@@ -93,6 +95,7 @@ public class SecurityConfig {
 				.loginPage("/login")
 				.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
 				.successHandler(oAuth2SuccessHandler)
+				.failureHandler(oAuth2FailureHandler)
 			)
 			.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 		return http.build();

@@ -75,7 +75,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		return userRepository
 			.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
 			.orElseGet(() -> {
-				if (userRepository.existsByEmail(attributes.getEmail())) {
+				String email = attributes.getEmail();
+				if (email != null && userRepository.existsByEmail(email)) {
 					throw new OAuth2AuthenticationException(
 						new OAuth2Error("email_already_exists",
 							"이미 가입된 이메일입니다. 기존 방법으로 로그인해주세요.", null));

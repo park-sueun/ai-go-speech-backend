@@ -3,6 +3,9 @@ package com.aigo.speech.ranking.entity;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -53,5 +56,47 @@ class RankingBackupTest {
 
 		assertThat(backup.getBestScore()).isEqualTo(70);
 		assertThat(backup.getTotalSessionCount()).isEqualTo(2);
+	}
+
+	@Test
+	@DisplayName("이번 주 첫 점수는 weeklyScore와 weekStartDate가 설정된다")
+	void updateWeeklyScore_firstThisWeek_setsScore () {
+		RankingBackup backup = RankingBackup.builder()
+			.user(mock(com.aigo.speech.user.entity.User.class))
+			.userUuid(java.util.UUID.randomUUID())
+			.bestScore(0).totalSessionCount(0).build();
+
+		backup.updateWeeklyScore(80);
+
+		assertThat(backup.getWeeklyScore()).isEqualTo(80);
+		assertThat(backup.getWeekStartDate()).isEqualTo(LocalDate.now().with(DayOfWeek.MONDAY));
+	}
+
+	@Test
+	@DisplayName("이번 주 더 높은 점수가 오면 weeklyScore가 갱신된다")
+	void updateWeeklyScore_higherScore_updates () {
+		RankingBackup backup = RankingBackup.builder()
+			.user(mock(com.aigo.speech.user.entity.User.class))
+			.userUuid(java.util.UUID.randomUUID())
+			.bestScore(0).totalSessionCount(0).build();
+
+		backup.updateWeeklyScore(60);
+		backup.updateWeeklyScore(85);
+
+		assertThat(backup.getWeeklyScore()).isEqualTo(85);
+	}
+
+	@Test
+	@DisplayName("이번 주 더 낮은 점수가 오면 weeklyScore가 유지된다")
+	void updateWeeklyScore_lowerScore_keeps () {
+		RankingBackup backup = RankingBackup.builder()
+			.user(mock(com.aigo.speech.user.entity.User.class))
+			.userUuid(java.util.UUID.randomUUID())
+			.bestScore(0).totalSessionCount(0).build();
+
+		backup.updateWeeklyScore(90);
+		backup.updateWeeklyScore(70);
+
+		assertThat(backup.getWeeklyScore()).isEqualTo(90);
 	}
 }

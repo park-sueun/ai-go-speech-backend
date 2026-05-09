@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,20 +36,23 @@ class RankingServiceTest {
 	@InjectMocks
 	RankingService rankingService;
 
+	private static final LocalDate CURRENT_MONDAY = LocalDate.now().with(DayOfWeek.MONDAY);
+
 	private UUID userUuid;
-	private RankingBackup backup;
+	private RankingBackup myBackup;
 
 	@BeforeEach
 	void setUp () {
 		userUuid = UUID.randomUUID();
-		backup = mockBackup(userUuid, 80, "서비스 기획자");
+		myBackup = mockBackup(userUuid, 80, "서비스 기획자");
 	}
 
 	@Test
-	@DisplayName("DB에서 랭킹 목록을 정상 반환한다")
-	void getRankings_success () {
-		given(rankingBackupRepository.findAllOrderByBestScoreDesc()).willReturn(List.of(backup));
-		given(rankingBackupRepository.countHigherThan(userUuid)).willReturn(0L);
+	@DisplayName("이번 주 데이터만 랭킹 목록으로 반환한다")
+	void getRankings_returnsWeeklyData () {
+		given(rankingBackupRepository.findWeeklyTopOrderByWeeklyScoreDesc(CURRENT_MONDAY))
+			.willReturn(List.of(myBackup));
+		given(rankingBackupRepository.countHigherWeeklyScore(CURRENT_MONDAY, 80)).willReturn(0L);
 
 		RankingListResponse response = rankingService.getRankings(userUuid);
 
@@ -60,14 +65,15 @@ class RankingServiceTest {
 	}
 
 	@Test
-	@DisplayName("면접 기록이 없는 유저는 myRanking이 null이다")
-	void getRankings_noHistory_myRankingNull () {
-		given(rankingBackupRepository.findAllOrderByBestScoreDesc()).willReturn(List.of());
+	@DisplayName("이번 주 기록이 없으면 랭킹 목록이 비어있고 myRanking은 null이다")
+	void getRankings_noWeeklyData_emptyResult () {
+		given(rankingBackupRepository.findWeeklyTopOrderByWeeklyScoreDesc(CURRENT_MONDAY))
+			.willReturn(List.of());
 
 		RankingListResponse response = rankingService.getRankings(userUuid);
 
-		assertThat(response.myRankingResponse()).isNull();
 		assertThat(response.rankingItemResponseList()).isEmpty();
+		assertThat(response.myRankingResponse()).isNull();
 		assertThat(response.totalCount()).isZero();
 	}
 
@@ -77,13 +83,13 @@ class RankingServiceTest {
 		UUID u1 = UUID.randomUUID(), u2 = UUID.randomUUID();
 		UUID u3 = UUID.randomUUID(), u4 = UUID.randomUUID();
 
-		List<RankingBackup> all = List.of(
+		List<RankingBackup> weekly = List.of(
 			mockBackup(u1, 85, null),
 			mockBackup(u2, 77, null),
 			mockBackup(u3, 77, null),
 			mockBackup(u4, 75, null)
 		);
-		given(rankingBackupRepository.findAllOrderByBestScoreDesc()).willReturn(all);
+		given(rankingBackupRepository.findWeeklyTopOrderByWeeklyScoreDesc(CURRENT_MONDAY)).willReturn(weekly);
 
 		RankingListResponse response = rankingService.getRankings(userUuid);
 
@@ -96,14 +102,28 @@ class RankingServiceTest {
 	}
 
 	@Test
-	@DisplayName("내 점수보다 높은 사람 수 기반으로 내 순위를 계산한다")
-	void getRankings_myRankBasedOnCountAbove () {
-		given(rankingBackupRepository.findAllOrderByBestScoreDesc()).willReturn(List.of(backup));
-		given(rankingBackupRepository.countHigherThan(userUuid)).willReturn(2L); // 2명이 더 높음 → 3위
+	@DisplayName("내 순위는 이번 주 나보다 높은 점수 수 + 1이다")
+	void getRankings_myRankBasedOnWeeklyCount () {
+		given(rankingBackupRepository.findWeeklyTopOrderByWeeklyScoreDesc(CURRENT_MONDAY))
+			.willReturn(List.of(myBackup));
+		given(rankingBackupRepository.countHigherWeeklyScore(CURRENT_MONDAY, 80)).willReturn(2L);
 
 		RankingListResponse response = rankingService.getRankings(userUuid);
 
 		assertThat(response.myRankingResponse().rank()).isEqualTo(3L);
+	}
+
+	@Test
+	@DisplayName("면접 완료 시 bestScore와 weeklyScore를 모두 갱신한다")
+	void updateRanking_updatesWeeklyScore () {
+		User user = mock(User.class);
+		given(userRepository.findByUuid(userUuid)).willReturn(Optional.of(user));
+		given(rankingBackupRepository.findByUserUuid(userUuid)).willReturn(Optional.of(myBackup));
+
+		rankingService.updateRanking(userUuid, 90, "백엔드 개발자");
+
+		verify(myBackup).update(90);
+		verify(myBackup).updateWeeklyScore(90);
 	}
 
 	@Test
@@ -121,19 +141,7 @@ class RankingServiceTest {
 		verify(rankingRepository).save(userUuid, 64);
 		verify(rankingBackupRepository).save(any(RankingBackup.class));
 		verify(newBackup).update(64);
-	}
-
-	@Test
-	@DisplayName("기존 RankingBackup이 있으면 update를 호출한다")
-	void updateRanking_existing_callsUpdate () {
-		User user = mock(User.class);
-		given(userRepository.findByUuid(userUuid)).willReturn(Optional.of(user));
-		given(rankingBackupRepository.findByUserUuid(userUuid)).willReturn(Optional.of(backup));
-
-		rankingService.updateRanking(userUuid, 90, "백엔드 개발자");
-
-		verify(rankingRepository).save(userUuid, 90);
-		verify(backup).update(90);
+		verify(newBackup).updateWeeklyScore(64);
 	}
 
 	@Test
@@ -148,15 +156,15 @@ class RankingServiceTest {
 	@Test
 	@DisplayName("유저 탈퇴 시 Redis와 DB에서 모두 삭제한다")
 	void removeRanking_deletesFromBoth () {
-		given(rankingBackupRepository.findByUserUuid(userUuid)).willReturn(Optional.of(backup));
+		given(rankingBackupRepository.findByUserUuid(userUuid)).willReturn(Optional.of(myBackup));
 
 		rankingService.deleteRanking(userUuid);
 
 		verify(rankingRepository).delete(userUuid);
-		verify(rankingBackupRepository).delete(backup);
+		verify(rankingBackupRepository).delete(myBackup);
 	}
 
-	private RankingBackup mockBackup (UUID uuid, int score, String jobTitle) {
+	private RankingBackup mockBackup (UUID uuid, int weeklyScore, String jobTitle) {
 		Profile profile = mock(Profile.class);
 		lenient().when(profile.getNickname()).thenReturn("유저");
 		lenient().when(profile.getProfileImageUrl()).thenReturn(null);
@@ -167,7 +175,7 @@ class RankingServiceTest {
 
 		RankingBackup b = mock(RankingBackup.class);
 		lenient().when(b.getUserUuid()).thenReturn(uuid);
-		lenient().when(b.getBestScore()).thenReturn(score);
+		lenient().when(b.getWeeklyScore()).thenReturn(weeklyScore);
 		lenient().when(b.getTotalSessionCount()).thenReturn(3);
 		lenient().when(b.getJobTitle()).thenReturn(jobTitle);
 		lenient().when(b.getUser()).thenReturn(user);

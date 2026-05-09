@@ -65,6 +65,7 @@ public class RankingService {
 			ranking.add(new RankingItemResponse(
 				rank++,
 				profile.getNickname(),
+				profile.getProfileImageUrl(),
 				jobTitle,
 				(int)score,
 				totalSessions
@@ -166,6 +167,7 @@ public class RankingService {
 		return new RankingListResponse.MyRankingResponse(
 			myRank,
 			profile.getNickname(),
+			profile.getProfileImageUrl(),
 			jobTitle,
 			myScore.intValue(),
 			totalSessions

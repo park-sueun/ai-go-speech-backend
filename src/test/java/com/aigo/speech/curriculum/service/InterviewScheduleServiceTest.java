@@ -61,8 +61,8 @@ class InterviewScheduleServiceTest {
 		ReflectionTestUtils.setField(savedSchedule, "id", 1L);
 
 		List<CurriculumResponse> mockCurriculum = List.of(
-			new CurriculumResponse(UUID.randomUUID(), null, "1차 모의면접", LocalDate.now(), false),
-			new CurriculumResponse(UUID.randomUUID(), null, "2차 모의면접", LocalDate.now(), false)
+			new CurriculumResponse(UUID.randomUUID(), null, null, "1차 모의면접", LocalDate.now(), false),
+			new CurriculumResponse(UUID.randomUUID(), null, null, "2차 모의면접", LocalDate.now(), false)
 		);
 
 		given(userRepository.findByUuid(USER_UUID)).willReturn(Optional.of(user));

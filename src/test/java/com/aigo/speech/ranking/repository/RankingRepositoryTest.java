@@ -72,10 +72,12 @@ class RankingRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("내 순위를 1-based로 반환한다")
-	void getMyRank_returnOneBased () {
-		given(zSetOperations.reverseRank(eq(RANKING_KEY), eq(userUuid.toString())))
-			.willReturn(2L); // 0-based → 3위
+	@DisplayName("내 점수보다 높은 사람이 2명이면 3위를 반환한다")
+	void getMyRank_returnsCountBasedRank () {
+		given(zSetOperations.score(eq(RANKING_KEY), eq(userUuid.toString())))
+			.willReturn(80.0);
+		given(zSetOperations.count(eq(RANKING_KEY), eq(81.0), eq(Double.MAX_VALUE)))
+			.willReturn(2L); // 81점 이상 2명 → 3위
 
 		Long rank = rankingRepository.getMyRank(userUuid);
 
@@ -83,9 +85,22 @@ class RankingRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("랭킹이 없으면 null을 반환한다")
+	@DisplayName("내 점수가 최고점이면 1위를 반환한다")
+	void getMyRank_topScore_returnsFirst () {
+		given(zSetOperations.score(eq(RANKING_KEY), eq(userUuid.toString())))
+			.willReturn(100.0);
+		given(zSetOperations.count(eq(RANKING_KEY), eq(101.0), eq(Double.MAX_VALUE)))
+			.willReturn(0L);
+
+		Long rank = rankingRepository.getMyRank(userUuid);
+
+		assertThat(rank).isEqualTo(1L);
+	}
+
+	@Test
+	@DisplayName("랭킹에 없으면 null을 반환한다")
 	void getMyRank_notFound_returnsNull () {
-		given(zSetOperations.reverseRank(eq(RANKING_KEY), eq(userUuid.toString())))
+		given(zSetOperations.score(eq(RANKING_KEY), eq(userUuid.toString())))
 			.willReturn(null);
 
 		Long rank = rankingRepository.getMyRank(userUuid);

@@ -1,14 +1,11 @@
 package com.aigo.speech.ranking.service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,46 +32,44 @@ public class RankingService {
 	private static final int TOP_N = 100;
 
 	public RankingListResponse getRankings (UUID userUuid) {
-		if (rankingRepository.getTotalCount() == 0) {
-			log.warn("[Ranking] Redis 데이터없음 >> DB warm-up 시작");
-			warmUpFromDb();
-		}
-		long totalCount = rankingRepository.getTotalCount();
-		Set<ZSetOperations.TypedTuple<String>> topSet = rankingRepository.getTopN(TOP_N);
-		List<UUID> uuids = topSet.stream().map(t -> UUID.fromString(Objects.requireNonNull(t.getValue()))).toList();
+		LocalDate currentMonday = LocalDate.now().with(DayOfWeek.MONDAY);
+		List<RankingBackup> weekly = rankingBackupRepository.findWeeklyTopOrderByWeeklyScoreDesc(currentMonday);
+		long totalCount = weekly.size();
 
-		Map<UUID, User> userMap = fetchUserMap(uuids);
-		Map<UUID, RankingBackup> backupMap = fetchBackupMap(uuids);
+		List<RankingItemResponse> ranking = buildRankingList(weekly);
+		RankingListResponse.MyRankingResponse myRanking = buildMyRanking(userUuid, weekly, currentMonday);
 
+		log.info("[Ranking] 조회 완료. myUuid={}, week={}, totalCount={}", userUuid, currentMonday, totalCount);
+		return new RankingListResponse(myRanking, ranking, totalCount);
+	}
+
+	private List<RankingItemResponse> buildRankingList (List<RankingBackup> weekly) {
 		List<RankingItemResponse> ranking = new ArrayList<>();
-		long rank = 1;
-		for (ZSetOperations.TypedTuple<String> tuple : topSet) {
-			UUID uuid = UUID.fromString(Objects.requireNonNull(tuple.getValue()));
-			double score = Objects.requireNonNull(tuple.getScore());
+		long position = 0;
+		long currentRank = 0;
+		int prevScore = Integer.MIN_VALUE;
+		int limit = Math.min(weekly.size(), TOP_N);
 
-			User user = userMap.get(uuid);
-			if (user == null) {
-				rank++;
-				continue;
+		for (int i = 0; i < limit; i++) {
+			RankingBackup backup = weekly.get(i);
+			position++;
+
+			if (backup.getWeeklyScore() != prevScore) {
+				currentRank = position;
+				prevScore = backup.getWeeklyScore();
 			}
 
-			Profile profile = user.getProfile();
-			int totalSessions = backupMap.containsKey(uuid) ? backupMap.get(uuid).getTotalSessionCount() : 0;
-			String jobTitle = backupMap.containsKey(uuid)
-				? backupMap.get(uuid).getJobTitle() : null;
+			Profile profile = backup.getUser().getProfile();
 			ranking.add(new RankingItemResponse(
-				rank++,
+				currentRank,
 				profile.getNickname(),
 				profile.getProfileImageUrl(),
-				jobTitle,
-				(int)score,
-				totalSessions
+				backup.getJobTitle(),
+				backup.getWeeklyScore(),
+				backup.getTotalSessionCount()
 			));
 		}
-
-		RankingListResponse.MyRankingResponse myRanking = buildMyRanking(userUuid, userMap, backupMap);
-		log.info("[Ranking] 조회 완료. myUuid={}, totalCount={}", userUuid, totalCount);
-		return new RankingListResponse(myRanking, ranking, totalCount);
+		return ranking;
 	}
 
 	@Transactional
@@ -94,6 +89,7 @@ public class RankingService {
 					.build()
 			));
 		backup.update(score);
+		backup.updateWeeklyScore(score);
 		backup.updateJobTitle(jobTitle);
 		log.info(
 			"[Ranking] 업데이트 완료. uuid={}, score={}, bestScore={}",
@@ -109,68 +105,27 @@ public class RankingService {
 		log.info("[Ranking] 유저 랭킹 삭제. uuid={}", userUuid);
 	}
 
-	private void warmUpFromDb () {
-		List<RankingBackup> all = rankingBackupRepository.findAllOrderByBestScoreDesc();
-		for (RankingBackup backup : all) {
-			rankingRepository.save(backup.getUserUuid(), backup.getBestScore());
-		}
-		log.info("[Ranking] warm-up 완료. count={}", all.size());
-	}
-
-	/* UUID 목록으로 User 일괄 조회 >> Map 반환 */
-	private Map<UUID, User> fetchUserMap (List<UUID> uuids) {
-		List<User> users = userRepository.findAllByUuidIn(uuids);
-		Map<UUID, User> map = new HashMap<>();
-		for (User u : users) {
-			map.put(u.getUuid(), u);
-		}
-		return map;
-	}
-
-	/* UUID 목록으로 RankingBackup 조회 >> Map 반환 */
-	private Map<UUID, RankingBackup> fetchBackupMap (List<UUID> uuids) {
-		List<RankingBackup> backups = rankingBackupRepository.findAllByUserUuidIn(uuids);
-		Map<UUID, RankingBackup> map = new HashMap<>();
-		for (RankingBackup b : backups) {
-			map.put(b.getUserUuid(), b);
-		}
-		return map;
-	}
-
 	/* 내 순위 정보 빌드 */
 	private RankingListResponse.MyRankingResponse buildMyRanking (
-		UUID myUuid,
-		Map<UUID, User> userMap,
-		Map<UUID, RankingBackup> backupMap
+		UUID myUuid, List<RankingBackup> weekly, LocalDate currentMonday
 	) {
-		Long myRank = rankingRepository.getMyRank(myUuid);
-		Double myScore = rankingRepository.getMyScore(myUuid);
+		RankingBackup myBackup = weekly.stream()
+			.filter(b -> b.getUserUuid().equals(myUuid))
+			.findFirst()
+			.orElse(null);
 
-		if (myRank == null || myScore == null) {
-			return null;
-		}
+		if (myBackup == null) return null;
 
-		User me = userMap.computeIfAbsent(
-			myUuid, uuid ->
-				userRepository.findByUuid(uuid).orElse(null)
-		);
-
-		if (me == null)
-			return null;
-
-		Profile profile = me.getProfile();
-		int totalSessions = backupMap.containsKey(myUuid)
-			? backupMap.get(myUuid).getTotalSessionCount() : 0;
-		String jobTitle = backupMap.containsKey(myUuid)
-			? backupMap.get(myUuid).getJobTitle() : null;
+		long above = rankingBackupRepository.countHigherWeeklyScore(currentMonday, myBackup.getWeeklyScore());
+		Profile profile = myBackup.getUser().getProfile();
 
 		return new RankingListResponse.MyRankingResponse(
-			myRank,
+			above + 1,
 			profile.getNickname(),
 			profile.getProfileImageUrl(),
-			jobTitle,
-			myScore.intValue(),
-			totalSessions
+			myBackup.getJobTitle(),
+			myBackup.getWeeklyScore(),
+			myBackup.getTotalSessionCount()
 		);
 	}
 }

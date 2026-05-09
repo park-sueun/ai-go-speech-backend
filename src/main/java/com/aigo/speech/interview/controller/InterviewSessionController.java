@@ -20,6 +20,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.aigo.speech.global.dto.ApiResponse;
 import com.aigo.speech.interview.dto.CreateSessionRequest;
 import com.aigo.speech.interview.dto.InterviewSessionResponse;
+import com.aigo.speech.interview.entity.InterviewStatus;
 import com.aigo.speech.interview.service.InterviewSessionService;
 import com.aigo.speech.question.dto.InterviewQuestionResponse;
 
@@ -35,9 +36,10 @@ public class InterviewSessionController {
 
 	@GetMapping
 	public ResponseEntity<ApiResponse<List<InterviewSessionResponse>>> getSessions(
-		@AuthenticationPrincipal String userUuid
+		@AuthenticationPrincipal String userUuid,
+		@RequestParam(required = false) InterviewStatus status
 	) {
-		List<InterviewSessionResponse> response = sessionService.getSessions(userUuid);
+		List<InterviewSessionResponse> response = sessionService.getSessions(userUuid, status);
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 

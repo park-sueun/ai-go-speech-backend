@@ -44,16 +44,20 @@ public class Profile extends BaseTimeEntity {
 	public Profile (User user, String nickname, String profileImageUrl) {
 		this.user = user;
 		this.nickname = nickname;
-		this.profileImageUrl = profileImageUrl;
+		this.profileImageUrl = blankToNull(profileImageUrl);
 	}
 
 	public void update (String nickname, String profileImageUrl) {
 		this.nickname = nickname;
-		this.profileImageUrl = profileImageUrl;
+		this.profileImageUrl = blankToNull(profileImageUrl);
 	}
 
 	public void updateProfileImage (String profileImageUrl) {
-		this.profileImageUrl = profileImageUrl;
+		this.profileImageUrl = blankToNull(profileImageUrl);
+	}
+
+	private static String blankToNull (String value) {
+		return (value == null || value.isBlank()) ? null : value;
 	}
 
 }

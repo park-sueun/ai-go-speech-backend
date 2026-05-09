@@ -100,12 +100,15 @@ public class InterviewSessionService {
 		return sseEmitterService.register(sessionUuid);
 	}
 
-	public List<InterviewSessionResponse> getSessions (String userUuidStr) {
+	public List<InterviewSessionResponse> getSessions (String userUuidStr, InterviewStatus status) {
 		User user = userRepository.findByUuid(UUID.fromString(userUuidStr))
 			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
 
-		return sessionRepository.findByUserOrderByCreatedAtDesc(user)
-			.stream()
+		List<InterviewSession> sessions = (status != null)
+			? sessionRepository.findByUserAndStatusOrderByCreatedAtDesc(user, status)
+			: sessionRepository.findByUserOrderByCreatedAtDesc(user);
+
+		return sessions.stream()
 			.map(s -> InterviewSessionResponse.from(s, null))
 			.toList();
 	}

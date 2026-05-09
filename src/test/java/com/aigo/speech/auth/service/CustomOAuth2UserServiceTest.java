@@ -20,6 +20,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
@@ -164,6 +165,22 @@ class CustomOAuth2UserServiceTest {
 
 		assertThat(result.getAuthorities())
 			.anyMatch(a -> a.getAuthority().equals("ROLE_USER"));
+	}
+
+	// ======================== 이메일 중복 ========================
+
+	@Test
+	@DisplayName("신규 유저 가입 시 이메일 중복이면 OAuth2AuthenticationException 발생")
+	void saveOrUpdateUser_이메일중복_예외발생 () {
+		given(userRepository.findByProviderAndProviderId(Provider.GOOGLE, "google-123")).willReturn(Optional.empty());
+		given(userRepository.existsByEmail("test@gmail.com")).willReturn(true);
+
+		assertThatThrownBy(() -> service.loadUser(buildGoogleRequest()))
+			.isInstanceOf(OAuth2AuthenticationException.class)
+			.extracting(e -> ((OAuth2AuthenticationException)e).getError().getErrorCode())
+			.isEqualTo("email_already_exists");
+
+		then(userRepository).should(never()).save(any(User.class));
 	}
 
 	// ======================== 닉네임 중복 ========================

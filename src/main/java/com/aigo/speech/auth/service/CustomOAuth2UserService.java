@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
@@ -74,6 +75,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		return userRepository
 			.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
 			.orElseGet(() -> {
+				if (userRepository.existsByEmail(attributes.getEmail())) {
+					throw new OAuth2AuthenticationException(
+						new OAuth2Error("email_already_exists",
+							"이미 가입된 이메일입니다. 기존 방법으로 로그인해주세요.", null));
+				}
 				User newUser = userRepository.save(attributes.toEntity());
 				agreeToRequiredTerms(newUser);
 				return newUser;

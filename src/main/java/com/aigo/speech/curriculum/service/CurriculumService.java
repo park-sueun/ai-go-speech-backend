@@ -40,7 +40,7 @@ public class CurriculumService {
 	@Transactional
 	public List<CurriculumResponse> generateCurriculum (User user, InterviewSchedule interviewSchedule) {
 		LocalDate interviewDate = interviewSchedule.getInterviewDate();
-		LocalDate today = LocalDate.now();
+		LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Seoul"));
 
 		long d_day = ChronoUnit.DAYS.between(today, interviewDate);
 		if (d_day <= 0) {

@@ -73,6 +73,12 @@ public class UserController {
 		return ResponseEntity.ok(ApiResponse.success(null));
 	}
 
+	@GetMapping("/email-check")
+	public ResponseEntity<ApiResponse<Void>> checkEmail (@RequestParam String email) {
+		userService.checkEmailDuplicate(email);
+		return ResponseEntity.ok(ApiResponse.success(null));
+	}
+
 	@DeleteMapping("/me")
 	public ResponseEntity<ApiResponse<Void>> delete (
 		@Parameter(hidden = true) @AuthenticationPrincipal String uuid

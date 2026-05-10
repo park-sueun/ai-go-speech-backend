@@ -75,6 +75,7 @@ public class SecurityConfig {
 					"/login/**",
 					"/error",
 					"/api/users/nickname-check",
+					"/api/users/email-check",
 					"/v3/api-docs/**", // swagger 설정
 					"/swagger-ui/**",
 					"/swagger-ui.html",

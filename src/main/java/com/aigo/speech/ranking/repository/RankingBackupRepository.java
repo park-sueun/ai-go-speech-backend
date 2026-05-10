@@ -6,10 +6,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.aigo.speech.ranking.entity.RankingBackup;
+import com.aigo.speech.user.entity.User;
 
 public interface RankingBackupRepository extends JpaRepository<RankingBackup, Long> {
 	Optional<RankingBackup> findByUserUuid (UUID userUuid);
@@ -51,6 +53,9 @@ public interface RankingBackupRepository extends JpaRepository<RankingBackup, Lo
 		AND r.weeklyScore > :score
 		""")
 	long countHigherWeeklyScore (@Param("weekStart") LocalDate weekStart, @Param("score") int score);
+
+	@Modifying
+	void deleteByUser(User user);
 
 }
 

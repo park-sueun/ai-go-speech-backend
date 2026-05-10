@@ -5,11 +5,21 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.aigo.speech.answer.repository.AnswerAnalysisRepository;
+import com.aigo.speech.answer.repository.InterviewAnswerRepository;
 import com.aigo.speech.auth.exception.DuplicateEmailException;
 import com.aigo.speech.auth.exception.DuplicateNicknameException;
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.auth.service.EmailVerificationService;
+import com.aigo.speech.curriculum.repository.CurriculumRepository;
+import com.aigo.speech.curriculum.repository.InterviewScheduleRepository;
+import com.aigo.speech.interview.repository.InterviewReportRepository;
+import com.aigo.speech.interview.repository.InterviewSessionRepository;
+import com.aigo.speech.jobposting.repository.JobPostingRepository;
 import com.aigo.speech.mail.exception.MailVerificationException;
+import com.aigo.speech.question.repository.InterviewQuestionRepository;
+import com.aigo.speech.ranking.repository.RankingBackupRepository;
+import com.aigo.speech.terms.repository.UserTermsAgreementRepository;
 import com.aigo.speech.user.dto.UserDto.UpdateProfileRequest;
 import com.aigo.speech.user.dto.UserDto.UserInfoResponse;
 import com.aigo.speech.user.entity.Provider;
@@ -29,6 +39,16 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final ProfileRepository profileRepository;
 	private final EmailVerificationService emailVerificationService;
+	private final AnswerAnalysisRepository answerAnalysisRepository;
+	private final InterviewAnswerRepository interviewAnswerRepository;
+	private final InterviewReportRepository interviewReportRepository;
+	private final InterviewQuestionRepository interviewQuestionRepository;
+	private final InterviewSessionRepository interviewSessionRepository;
+	private final RankingBackupRepository rankingBackupRepository;
+	private final CurriculumRepository curriculumRepository;
+	private final InterviewScheduleRepository interviewScheduleRepository;
+	private final JobPostingRepository jobPostingRepository;
+	private final UserTermsAgreementRepository userTermsAgreementRepository;
 
 	public UserInfoResponse getUserInfo (UUID uuid) { // 사용자 정보 조회
 		User user = userRepository.findByUuid(uuid)
@@ -85,6 +105,16 @@ public class UserService {
 		User user = userRepository.findByUuid(uuid)
 			.orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
-		userRepository.delete(user);
+		answerAnalysisRepository.deleteAllBySessionUser(user);
+		interviewAnswerRepository.deleteAllBySessionUser(user);
+		interviewReportRepository.deleteAllBySessionUser(user);
+		interviewQuestionRepository.deleteAllBySessionUser(user);
+		interviewSessionRepository.deleteAllByUser(user);
+		rankingBackupRepository.deleteByUser(user);
+		curriculumRepository.deleteAllByUser(user);
+		interviewScheduleRepository.deleteAllByUser(user);
+		jobPostingRepository.deleteAllByUser(user);
+		userTermsAgreementRepository.deleteAllByUser(user);
+		userRepository.delete(user); // Profile은 CascadeType.ALL로 자동 삭제
 	}
 }

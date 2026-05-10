@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.entity.InterviewStatus;
@@ -18,4 +19,7 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
 	boolean existsByUserAndJobPostingAndStatus(User user, JobPosting jobPosting, InterviewStatus status);
 	long countByUserAndJobPostingAndStatus(User user, JobPosting jobPosting, InterviewStatus status);
 	List<InterviewSession> findByUserAndJobPostingOrderByCreatedAtAsc(User user, JobPosting jobPosting);
+
+	@Modifying
+	void deleteAllByUser(User user);
 }

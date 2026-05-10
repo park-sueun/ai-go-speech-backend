@@ -6,9 +6,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 
 import com.aigo.speech.curriculum.entity.Curriculum;
 import com.aigo.speech.curriculum.entity.InterviewSchedule;
+import com.aigo.speech.user.entity.User;
 
 public interface CurriculumRepository extends JpaRepository<Curriculum, Long> {
 
@@ -19,4 +21,7 @@ public interface CurriculumRepository extends JpaRepository<Curriculum, Long> {
 	List<Curriculum> findByUserUuidAndScheduleDate (UUID userUuid, LocalDate scheduleDate);
 
 	void deleteAllByInterviewSchedule (InterviewSchedule schedule);
+
+	@Modifying
+	void deleteAllByUser (User user);
 }

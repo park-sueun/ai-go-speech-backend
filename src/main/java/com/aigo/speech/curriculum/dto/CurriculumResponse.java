@@ -14,7 +14,8 @@ public record CurriculumResponse(
 	boolean isPast
 ) {
 	public static CurriculumResponse from (Curriculum curriculum) {
-		LocalDate today = LocalDate.now();
+		LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Seoul"));
+
 		boolean isPast = curriculum.getScheduleDate().isBefore(today);
 
 		UUID jobPostingUuid = (curriculum.getJobPosting() != null)

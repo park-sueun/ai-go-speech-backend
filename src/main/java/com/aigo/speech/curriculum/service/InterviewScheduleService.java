@@ -85,7 +85,7 @@ public class InterviewScheduleService {
 		}
 
 		List<CurriculumResponse> curriculums = curriculumService.getCurriculumsBySchedule(
-			userUuid, scheduleUuid, LocalDate.now());
+			userUuid, scheduleUuid, LocalDate.now(java.time.ZoneId.of("Asia/Seoul")));
 		return InterviewScheduleResponse.of(schedule, curriculums);
 	}
 

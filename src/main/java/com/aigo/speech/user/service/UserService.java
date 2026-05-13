@@ -20,9 +20,13 @@ import com.aigo.speech.jobposting.repository.JobPostingRepository;
 import com.aigo.speech.mail.exception.MailVerificationException;
 import com.aigo.speech.question.repository.InterviewQuestionRepository;
 import com.aigo.speech.ranking.repository.RankingBackupRepository;
+import com.aigo.speech.s3.dto.PreSignedUrlRequest;
+import com.aigo.speech.s3.dto.PreSignedUrlResponse;
+import com.aigo.speech.s3.service.S3Service;
 import com.aigo.speech.terms.repository.UserTermsAgreementRepository;
 import com.aigo.speech.user.dto.UserDto.UpdateProfileRequest;
 import com.aigo.speech.user.dto.UserDto.UserInfoResponse;
+import com.aigo.speech.user.entity.Profile;
 import com.aigo.speech.user.entity.Provider;
 import com.aigo.speech.user.entity.User;
 import com.aigo.speech.user.repository.ProfileRepository;
@@ -51,6 +55,7 @@ public class UserService {
 	private final InterviewScheduleRepository interviewScheduleRepository;
 	private final JobPostingRepository jobPostingRepository;
 	private final UserTermsAgreementRepository userTermsAgreementRepository;
+	private final S3Service s3Service;
 
 	public UserInfoResponse getUserInfo (UUID uuid) { // 사용자 정보 조회
 		User user = userRepository.findByUuid(uuid)
@@ -120,5 +125,42 @@ public class UserService {
 		jobPostingRepository.deleteAllByUser(user);
 		userTermsAgreementRepository.deleteAllByUser(user);
 		userRepository.delete(user); // Profile은 CascadeType.ALL로 자동 삭제
+	}
+
+	public PreSignedUrlResponse getPreSignedUploadUrl (
+		UUID uuid,
+		PreSignedUrlRequest request
+	) {
+		User user = userRepository.findByUuid(uuid)
+			.orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+
+		S3Service.PreSignedUrlInfo info = s3Service.generatePreSignedUploadUrl(
+			user.getUuid(),
+			request.getFileExtension(),
+			request.getContentType()
+		);
+
+		return new PreSignedUrlResponse(
+			info.preSignedUrl(),
+			info.s3Key(),
+			info.publicUrl()
+		);
+	}
+
+	@Transactional
+	public void confirmProfileImage (UUID uuid, String s3Key) {
+		User user = userRepository.findByUuid(uuid)
+			.orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+
+		Profile profile = user.getProfile();
+
+		// 기존 이미지 S3에서 삭제
+		if (profile.getProfileImageUrl() != null) {
+			String oldKey = s3Service.extractKeyFromUrl(profile.getProfileImageUrl());
+			if (oldKey != null && oldKey.startsWith("profiles/")) {
+				s3Service.deleteObject(oldKey);
+			}
+		}
+		profile.updateProfileImage(s3Service.buildPublicUrl(s3Key));
 	}
 }

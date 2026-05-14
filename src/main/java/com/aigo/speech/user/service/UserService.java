@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.aigo.speech.answer.repository.AnswerAnalysisRepository;
+import com.aigo.speech.auth.service.SocialUnlinkService;
 import com.aigo.speech.answer.repository.InterviewAnswerRepository;
 import com.aigo.speech.auth.exception.DuplicateEmailException;
 import com.aigo.speech.auth.exception.DuplicateNicknameException;
@@ -39,6 +40,7 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final ProfileRepository profileRepository;
 	private final EmailVerificationService emailVerificationService;
+	private final SocialUnlinkService socialUnlinkService;
 	private final AnswerAnalysisRepository answerAnalysisRepository;
 	private final InterviewAnswerRepository interviewAnswerRepository;
 	private final InterviewReportRepository interviewReportRepository;
@@ -104,6 +106,8 @@ public class UserService {
 	public void deleteUser (UUID uuid) { // 회원 탈퇴
 		User user = userRepository.findByUuid(uuid)
 			.orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+
+		socialUnlinkService.revoke(user);
 
 		answerAnalysisRepository.deleteAllBySessionUser(user);
 		interviewAnswerRepository.deleteAllBySessionUser(user);

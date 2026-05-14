@@ -1,5 +1,7 @@
 package com.aigo.speech.auth.service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -35,6 +37,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 	private final ProfileRepository profileRepository;
 	private final TermsRepository termsRepository;
 	private final UserTermsAgreementRepository userTermsAgreementRepository;
+	private final SocialUnlinkService socialUnlinkService;
 
 	@Override
 	@Transactional
@@ -51,6 +54,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
 		User user = saveOrUpdateUser(attributes);
 		Profile profile = saveOrUpdateProfile(user, attributes);
+
+		Instant expiresAt = request.getAccessToken().getExpiresAt();
+		long ttl = (expiresAt != null)
+			? Math.max(ChronoUnit.SECONDS.between(Instant.now(), expiresAt), 0)
+			: 3600L;
+		socialUnlinkService.saveOAuthToken(user.getUuid(), request.getAccessToken().getTokenValue(), ttl);
 
 		Map<String, Object> userAttributes = Map.of(
 			userNameAttributeName, attributes.getProviderId(),

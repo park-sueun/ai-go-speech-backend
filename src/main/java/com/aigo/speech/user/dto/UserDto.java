@@ -45,8 +45,6 @@ public class UserDto {
 		@Size(min = 2, max = 10, message = "2자 이상 10자 이하로 작성해주세요.")
 		@Pattern(regexp = "^[a-zA-Z0-9가-힣]*$", message = "특수문자는 입력할 수 없습니다.")
 		private String nickname;
-
-		private String profileImageUrl;
 	}
 
 	@Getter

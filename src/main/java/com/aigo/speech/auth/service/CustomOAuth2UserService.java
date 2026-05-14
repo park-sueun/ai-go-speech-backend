@@ -120,6 +120,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 				if (!profile.getNickname().equals(oauthNickname)
 					&& !profileRepository.existsByNickname(oauthNickname)) {
 					profile.updateNickname(oauthNickname);
+					profile.update(oauthNickname);
+					if (attributes.getProviderId() != null) {
+						profile.updateProfileImage(attributes.getProfileImage());
+					}
+				} else {
+					profile.updateProfileImage(attributes.getProfileImage());
 				}
 				return profile;
 			})

@@ -39,11 +39,11 @@ public class S3Service {
 		String contentType
 	) {
 		if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
-			throw new IllegalArgumentException("혀용되지 않는 파일 형식: " + contentType);
+			throw new IllegalArgumentException("허용되지 않는 파일 형식: " + contentType);
 		}
 
 		String s3Key = String.format(
-			"profiles/%d/%s.%s",
+			"profiles/%s/%s.%s",
 			userId,
 			UUID.randomUUID(),
 			fileExtension

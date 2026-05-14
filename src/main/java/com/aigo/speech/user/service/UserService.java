@@ -75,11 +75,7 @@ public class UserService {
 			validateDuplicateNickname(newNickname);
 		}
 
-		String newProfileImageURL = request.getProfileImageUrl(); // 프로필 이미지 수정
-		String finalImageURL =
-			(newProfileImageURL != null) ? newProfileImageURL : user.getProfile().getProfileImageUrl();
-
-		user.getProfile().update(newNickname, finalImageURL);
+		user.getProfile().update(newNickname);
 	}
 
 	public void validateDuplicateNickname (String nickname) { // 닉네임 중복 확인
@@ -124,7 +120,7 @@ public class UserService {
 		interviewScheduleRepository.deleteAllByUser(user);
 		jobPostingRepository.deleteAllByUser(user);
 		userTermsAgreementRepository.deleteAllByUser(user);
-		userRepository.delete(user); // Profile은 CascadeType.ALL로 자동 삭제
+		userRepository.delete(user);
 	}
 
 	public PreSignedUrlResponse getPreSignedUploadUrl (
@@ -149,6 +145,12 @@ public class UserService {
 
 	@Transactional
 	public void confirmProfileImage (UUID uuid, String s3Key) {
+		String expectedPrefix = "profiles/" + uuid + "/";
+
+		if (!s3Key.startsWith(expectedPrefix)) {
+			throw new IllegalArgumentException("잘못된 s3Key 경로입니다.");
+		}
+
 		User user = userRepository.findByUuid(uuid)
 			.orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 

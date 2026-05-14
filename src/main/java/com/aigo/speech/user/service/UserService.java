@@ -110,6 +110,14 @@ public class UserService {
 
 		socialUnlinkService.revoke(user);
 
+		String profileUrl = user.getProfile().getProfileImageUrl();
+		if (profileUrl != null) {
+			String s3key = s3Service.extractKeyFromUrl(profileUrl);
+			if (s3key != null && s3key.startsWith("profiles/")) { /* 소셜 이미지가 아닌 s3 파일일 경우에만 삭제 */
+				s3Service.deleteObject(s3key);
+			}
+		}
+
 		answerAnalysisRepository.deleteAllBySessionUser(user);
 		interviewAnswerRepository.deleteAllBySessionUser(user);
 		interviewReportRepository.deleteAllBySessionUser(user);
@@ -155,14 +163,17 @@ public class UserService {
 			.orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
 		Profile profile = user.getProfile();
+		String oldUrl = profile.getProfileImageUrl();
+
+		String newPublicUrl = s3Service.buildPublicUrl(s3Key);
+		profile.updateProfileImage(newPublicUrl);
 
 		// 기존 이미지 S3에서 삭제
 		if (profile.getProfileImageUrl() != null) {
-			String oldKey = s3Service.extractKeyFromUrl(profile.getProfileImageUrl());
+			String oldKey = s3Service.extractKeyFromUrl(oldUrl);
 			if (oldKey != null && oldKey.startsWith("profiles/")) {
 				s3Service.deleteObject(oldKey);
 			}
 		}
-		profile.updateProfileImage(s3Service.buildPublicUrl(s3Key));
 	}
 }

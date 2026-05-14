@@ -78,6 +78,9 @@ public class S3Service {
 
 	/* 기존 프로필 이미지 교체 시 사용 */
 	public void deleteObject (String s3Key) {
+		if (s3Key == null || s3Key.isBlank()) {
+			return;
+		}
 		try {
 			DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
 				.bucket(bucketName)

@@ -174,7 +174,8 @@ public class InterviewScheduleService {
 	}
 
 	private String joinList (List<String> list) {
-		if (list == null || list.isEmpty()) return "";
+		if (list == null || list.isEmpty())
+			return "";
 		return String.join(", ", list);
 	}
 
@@ -183,10 +184,12 @@ public class InterviewScheduleService {
 	}
 
 	private static String toTarget (int rawScore) {
-		if (rawScore == 0) return "30";
+		if (rawScore == 0)
+			return "60";
 		return String.valueOf(Math.min(100, (int)Math.round(rawScore * 1.1)));
 	}
 
 	private record ScoreContext(String filler, String logic, String silence,
-		String fillerTarget, String logicTarget, String silenceTarget) {}
+								String fillerTarget, String logicTarget, String silenceTarget) {
+	}
 }

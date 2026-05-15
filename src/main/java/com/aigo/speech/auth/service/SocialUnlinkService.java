@@ -7,12 +7,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import com.aigo.speech.user.entity.Provider;
 import com.aigo.speech.user.entity.User;
@@ -69,7 +69,15 @@ public class SocialUnlinkService {
 			log.warn("[SocialUnlink] Google token not found, skip: {}", user.getUuid());
 			return;
 		}
-		restTemplate.postForEntity("https://oauth2.googleapis.com/revoke?token=" + token, null, Void.class);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+		body.add("token", token);
+		restTemplate.postForEntity(
+			"https://oauth2.googleapis.com/revoke",
+			new HttpEntity<>(body, headers),
+			Void.class
+		);
 	}
 
 	private void revokeNaver (User user) {
@@ -78,14 +86,18 @@ public class SocialUnlinkService {
 			log.warn("[SocialUnlink] Naver token not found, skip: {}", user.getUuid());
 			return;
 		}
-		String url = UriComponentsBuilder
-			.fromUriString("https://nid.naver.com/oauth2.0/token")
-			.queryParam("grant_type", "delete")
-			.queryParam("client_id", naverClientId)
-			.queryParam("client_secret", naverClientSecret)
-			.queryParam("access_token", token)
-			.toUriString();
-		restTemplate.getForEntity(url, String.class);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+		body.add("grant_type", "delete");
+		body.add("client_id", naverClientId);
+		body.add("client_secret", naverClientSecret);
+		body.add("access_token", token);
+		restTemplate.postForEntity(
+			"https://nid.naver.com/oauth2.0/token",
+			new HttpEntity<>(body, headers),
+			String.class
+		);
 	}
 
 	private void revokeKakao (User user) {

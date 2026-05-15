@@ -14,8 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.aigo.speech.curriculum.dto.CompletedJobPostingResponse;
+import com.aigo.speech.curriculum.dto.InterviewScheduleFromJobPostingRequest;
 import com.aigo.speech.curriculum.dto.InterviewScheduleListResponse;
-import com.aigo.speech.curriculum.dto.InterviewScheduleRequest;
 import com.aigo.speech.curriculum.dto.InterviewScheduleResponse;
 import com.aigo.speech.curriculum.dto.InterviewScheduleUpdateRequest;
 import com.aigo.speech.curriculum.service.InterviewScheduleService;
@@ -31,12 +32,12 @@ public class InterviewScheduleController {
 	private final InterviewScheduleService scheduleService;
 
 	@PostMapping
-	public ResponseEntity<ApiResponse<InterviewScheduleResponse>> registerInterviewSchedule (
+	public ResponseEntity<ApiResponse<InterviewScheduleResponse>> registerSchedule (
 		Authentication authentication,
-		@RequestBody @Valid InterviewScheduleRequest request
+		@RequestBody @Valid InterviewScheduleFromJobPostingRequest request
 	) {
 		UUID userUuid = UUID.fromString(authentication.getName());
-		return ResponseEntity.ok(ApiResponse.success(scheduleService.register(userUuid, request)));
+		return ResponseEntity.ok(ApiResponse.success(scheduleService.registerFromJobPosting(userUuid, request)));
 	}
 
 	@GetMapping
@@ -45,6 +46,14 @@ public class InterviewScheduleController {
 	) {
 		UUID userUuid = UUID.fromString(authentication.getName());
 		return ResponseEntity.ok(ApiResponse.success(scheduleService.getSchedules(userUuid)));
+	}
+
+	@GetMapping("/job-postings")
+	public ResponseEntity<ApiResponse<List<CompletedJobPostingResponse>>> getCompletedJobPostings (
+		Authentication authentication
+	) {
+		UUID userUuid = UUID.fromString(authentication.getName());
+		return ResponseEntity.ok(ApiResponse.success(scheduleService.getCompletedJobPostings(userUuid)));
 	}
 
 	@GetMapping("/{scheduleUuid}")

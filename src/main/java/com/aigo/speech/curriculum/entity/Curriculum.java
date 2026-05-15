@@ -12,8 +12,6 @@ import com.aigo.speech.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -44,9 +42,8 @@ public class Curriculum extends BaseTimeEntity {
 	@JoinColumn(name = "job_posting_id", nullable = true)
 	private JobPosting jobPosting;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	private CurriculumContent content;
+	@Column(columnDefinition = "TEXT")
+	private String content;
 
 	@Column(nullable = false)
 	private LocalDate scheduleDate;
@@ -55,14 +52,17 @@ public class Curriculum extends BaseTimeEntity {
 	@JoinColumn(name = "interview_schedule_id", nullable = false)
 	private InterviewSchedule interviewSchedule;
 
-	public static Curriculum create (
-		User user, InterviewSchedule interviewSchedule, CurriculumContent content, LocalDate scheduleDate) {
+	public static Curriculum createPending (User user, InterviewSchedule interviewSchedule, LocalDate scheduleDate) {
 		Curriculum curriculum = new Curriculum();
 		curriculum.uuid = UUID.randomUUID();
 		curriculum.user = user;
 		curriculum.interviewSchedule = interviewSchedule;
-		curriculum.content = content;
+		curriculum.jobPosting = interviewSchedule.getJobPosting();
 		curriculum.scheduleDate = scheduleDate;
 		return curriculum;
+	}
+
+	public void updateContent (String content) {
+		this.content = content;
 	}
 }

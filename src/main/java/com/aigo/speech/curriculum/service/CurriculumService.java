@@ -16,6 +16,7 @@ import com.aigo.speech.ai.dto.AiPromptRequest;
 import com.aigo.speech.ai.prompt.PromptTemplate;
 import com.aigo.speech.ai.service.AiService;
 import com.aigo.speech.auth.exception.UserNotFoundException;
+import com.aigo.speech.curriculum.dto.CurriculumGenerationRequest;
 import com.aigo.speech.curriculum.dto.CurriculumResponse;
 import com.aigo.speech.curriculum.entity.Curriculum;
 import com.aigo.speech.curriculum.entity.InterviewSchedule;
@@ -57,54 +58,42 @@ public class CurriculumService {
 
 	@Async("aiExecutor")
 	@Transactional
-	public void generateCurriculumContentAsync (
-		UUID scheduleUuid,
-		String companyName,
-		String position,
-		String requiredSkills,
-		String preferredSkills,
-		String fillerScore,
-		String logicScore,
-		String silenceScore,
-		String fillerTarget,
-		String logicTarget,
-		String silenceTarget
-	) {
+	public void generateCurriculumContentAsync (CurriculumGenerationRequest req) {
 		try {
-			InterviewSchedule schedule = interviewScheduleRepository.findByUuid(scheduleUuid)
+			InterviewSchedule schedule = interviewScheduleRepository.findByUuid(req.scheduleUuid())
 				.orElseThrow(() -> new IllegalArgumentException("해당 일정을 찾을 수 없습니다."));
 			List<Curriculum> curriculums = curriculumRepository
 				.findByInterviewScheduleOrderByScheduleDateAsc(schedule);
 
 			if (curriculums.isEmpty()) return;
 
-			AiPromptRequest request = AiPromptRequest.of(
+			AiPromptRequest aiRequest = AiPromptRequest.of(
 				PromptTemplate.CURRICULUM_V1.getContent(),
 				Map.ofEntries(
-					Map.entry("companyName", companyName),
-					Map.entry("position", position),
-					Map.entry("requiredSkills", requiredSkills),
-					Map.entry("preferredSkills", preferredSkills),
-					Map.entry("fillerScore", fillerScore),
-					Map.entry("logicScore", logicScore),
-					Map.entry("silenceScore", silenceScore),
-					Map.entry("fillerTarget", fillerTarget),
-					Map.entry("logicTarget", logicTarget),
-					Map.entry("silenceTarget", silenceTarget),
+					Map.entry("companyName", req.companyName()),
+					Map.entry("position", req.position()),
+					Map.entry("requiredSkills", req.requiredSkills()),
+					Map.entry("preferredSkills", req.preferredSkills()),
+					Map.entry("fillerScore", req.fillerScore()),
+					Map.entry("logicScore", req.logicScore()),
+					Map.entry("silenceScore", req.silenceScore()),
+					Map.entry("fillerTarget", req.fillerTarget()),
+					Map.entry("logicTarget", req.logicTarget()),
+					Map.entry("silenceTarget", req.silenceTarget()),
 					Map.entry("n", String.valueOf(curriculums.size()))
 				)
 			);
 
-			String[] lines = aiService.complete(request).content().strip().split("\n");
+			String[] lines = aiService.complete(aiRequest).content().strip().split("\n");
 
 			for (int i = 0; i < Math.min(curriculums.size(), lines.length); i++) {
 				String line = lines[i].strip().replaceAll("^\\d+[.)\\s]+", "");
 				curriculums.get(i).updateContent(line);
 			}
 
-			log.info("[Curriculum] AI 커리큘럼 생성 완료. scheduleUuid={}, count={}", scheduleUuid, curriculums.size());
+			log.info("[Curriculum] AI 커리큘럼 생성 완료. scheduleUuid={}, count={}", req.scheduleUuid(), curriculums.size());
 		} catch (Exception e) {
-			log.error("[Curriculum] AI 커리큘럼 생성 실패. scheduleUuid={}, error={}", scheduleUuid, e.getMessage());
+			log.error("[Curriculum] AI 커리큘럼 생성 실패. scheduleUuid={}, error={}", req.scheduleUuid(), e.getMessage());
 		}
 	}
 

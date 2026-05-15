@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.aigo.speech.curriculum.dto.CompletedJobPostingResponse;
+import com.aigo.speech.curriculum.dto.CurriculumGenerationRequest;
 import com.aigo.speech.curriculum.dto.CurriculumResponse;
 import com.aigo.speech.curriculum.dto.InterviewScheduleFromJobPostingRequest;
 import com.aigo.speech.curriculum.dto.InterviewScheduleResponse;
@@ -90,8 +91,7 @@ class InterviewScheduleServiceTest {
 		assertThat(schedule.getInterviewDate()).isEqualTo(newDate);
 		verify(curriculumService).deleteAllBySchedule(schedule);
 		verify(curriculumService).createPendingCurriculums(any(User.class), any(InterviewSchedule.class));
-		verify(curriculumService).generateCurriculumContentAsync(
-			eq(scheduleUuid), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+		verify(curriculumService).generateCurriculumContentAsync(any(CurriculumGenerationRequest.class));
 	}
 
 	@Test
@@ -114,8 +114,7 @@ class InterviewScheduleServiceTest {
 		assertThat(response.companyName()).isEqualTo(COMPANY_NAME);
 		verify(curriculumService, never()).deleteAllBySchedule(any());
 		verify(curriculumService, never()).createPendingCurriculums(any(), any());
-		verify(curriculumService, never()).generateCurriculumContentAsync(
-			any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+		verify(curriculumService, never()).generateCurriculumContentAsync(any(CurriculumGenerationRequest.class));
 	}
 
 	@Test
@@ -239,8 +238,7 @@ class InterviewScheduleServiceTest {
 		assertThat(response.curriculums().get(0).content()).isNull();
 		verify(scheduleRepository).save(any(InterviewSchedule.class));
 		verify(curriculumService).createPendingCurriculums(any(User.class), any(InterviewSchedule.class));
-		verify(curriculumService).generateCurriculumContentAsync(
-			any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+		verify(curriculumService).generateCurriculumContentAsync(any(CurriculumGenerationRequest.class));
 	}
 
 	@Test

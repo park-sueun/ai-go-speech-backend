@@ -11,6 +11,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.curriculum.dto.CompletedJobPostingResponse;
+import com.aigo.speech.curriculum.dto.CurriculumGenerationRequest;
 import com.aigo.speech.curriculum.dto.CurriculumResponse;
 import com.aigo.speech.curriculum.dto.InterviewScheduleFromJobPostingRequest;
 import com.aigo.speech.curriculum.dto.InterviewScheduleListResponse;
@@ -129,22 +130,14 @@ public class InterviewScheduleService {
 			? buildScoreContext(schedule.getUser(), jp)
 			: new ScoreContext("데이터 없음", "데이터 없음", "데이터 없음", "없음", "없음", "없음");
 
-		UUID scheduleUuid = schedule.getUuid();
-		ScoreContext capturedScores = scores;
-		String capturedCompany = companyName, capturedPosition = position;
-		String capturedRequired = requiredSkills, capturedPreferred = preferredSkills;
+		CurriculumGenerationRequest req = new CurriculumGenerationRequest(
+			schedule.getUuid(),
+			companyName, position, requiredSkills, preferredSkills,
+			scores.filler(), scores.logic(), scores.silence(),
+			scores.fillerTarget(), scores.logicTarget(), scores.silenceTarget()
+		);
 
-		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-			@Override
-			public void afterCommit () {
-				curriculumService.generateCurriculumContentAsync(
-					scheduleUuid,
-					capturedCompany, capturedPosition, capturedRequired, capturedPreferred,
-					capturedScores.filler(), capturedScores.logic(), capturedScores.silence(),
-					capturedScores.fillerTarget(), capturedScores.logicTarget(), capturedScores.silenceTarget()
-				);
-			}
-		});
+		runAfterCommit(() -> curriculumService.generateCurriculumContentAsync(req));
 	}
 
 	private ScoreContext buildScoreContext (User user, JobPosting jobPosting) {
@@ -193,6 +186,19 @@ public class InterviewScheduleService {
 
 	private String orEmpty (String value) {
 		return value != null ? value : "";
+	}
+
+	private void runAfterCommit (Runnable task) {
+		if (TransactionSynchronizationManager.isSynchronizationActive()) {
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCommit () {
+					task.run();
+				}
+			});
+		} else {
+			task.run();
+		}
 	}
 
 	private static String toTarget (int rawScore) {

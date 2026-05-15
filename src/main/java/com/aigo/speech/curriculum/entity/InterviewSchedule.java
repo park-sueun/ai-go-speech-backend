@@ -53,8 +53,17 @@ public class InterviewSchedule extends BaseTimeEntity {
 		return schedule;
 	}
 
-	public void update (String companyName, LocalDate interviewDate) {
-		this.companyName = companyName;
+	public static InterviewSchedule createFromJobPosting (User user, JobPosting jobPosting, LocalDate interviewDate) {
+		InterviewSchedule schedule = new InterviewSchedule();
+		schedule.uuid = UUID.randomUUID();
+		schedule.user = user;
+		schedule.jobPosting = jobPosting;
+		schedule.companyName = jobPosting.getCompanyName();
+		schedule.interviewDate = interviewDate;
+		return schedule;
+	}
+
+	public void update (LocalDate interviewDate) {
 		this.interviewDate = interviewDate;
 	}
 }

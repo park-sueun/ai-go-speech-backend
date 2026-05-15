@@ -12,7 +12,8 @@ public enum PromptTemplate {
 	INTERVIEW_QUESTION_V1("prompts/interview_question_v1.txt"),
 	ANSWER_ANALYSIS_V1("prompts/answer_analysis_v1.txt"),
 	SESSION_REPORT_V1("prompts/session_report_v1.txt"),
-	COMBINED_ANALYSIS_V1("prompts/combined_analysis_v1.txt");
+	COMBINED_ANALYSIS_V1("prompts/combined_analysis_v1.txt"),
+	CURRICULUM_V1("prompts/curriculum_v1.txt");
 
 	private final String path;
 	private volatile String content;

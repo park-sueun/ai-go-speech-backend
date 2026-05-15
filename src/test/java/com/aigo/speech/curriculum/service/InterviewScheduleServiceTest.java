@@ -21,7 +21,9 @@ import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.curriculum.dto.CurriculumResponse;
 import com.aigo.speech.curriculum.dto.InterviewScheduleRequest;
 import com.aigo.speech.curriculum.dto.InterviewScheduleResponse;
+import com.aigo.speech.curriculum.dto.InterviewScheduleUpdateRequest;
 import com.aigo.speech.curriculum.entity.InterviewSchedule;
+import com.aigo.speech.curriculum.exception.UnauthorizedCurriculumException;
 import com.aigo.speech.curriculum.repository.InterviewScheduleRepository;
 import com.aigo.speech.user.entity.User;
 import com.aigo.speech.user.repository.UserRepository;
@@ -92,6 +94,98 @@ class InterviewScheduleServiceTest {
 			.hasMessage("존재하지 않는 사용자입니다.");
 
 		verify(scheduleRepository, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("면접 날짜를 변경하면 커리큘럼이 삭제 후 재생성된다")
+	void updateSchedule_dateChanged_regeneratesCurriculum () {
+		UUID scheduleUuid = UUID.randomUUID();
+		User user = User.builder().email("test@example.com").build();
+		ReflectionTestUtils.setField(user, "uuid", USER_UUID);
+
+		LocalDate originalDate = LocalDate.of(2026, 5, 20);
+		LocalDate newDate = LocalDate.of(2026, 6, 10);
+		InterviewSchedule schedule = InterviewSchedule.create(user, COMPANY_NAME, originalDate);
+		ReflectionTestUtils.setField(schedule, "uuid", scheduleUuid);
+
+		List<CurriculumResponse> regenerated = List.of(
+			new CurriculumResponse(UUID.randomUUID(), null, null, "1차 모의면접", newDate, false)
+		);
+
+		given(scheduleRepository.findByUuid(scheduleUuid)).willReturn(Optional.of(schedule));
+		given(curriculumService.generateCurriculum(any(User.class), any(InterviewSchedule.class)))
+			.willReturn(regenerated);
+
+		InterviewScheduleUpdateRequest request = new InterviewScheduleUpdateRequest(newDate);
+		InterviewScheduleResponse response = interviewScheduleService.updateSchedule(USER_UUID, scheduleUuid, request);
+
+		assertThat(response.companyName()).isEqualTo(COMPANY_NAME);
+		assertThat(schedule.getInterviewDate()).isEqualTo(newDate);
+		verify(curriculumService).deleteAllBySchedule(schedule);
+		verify(curriculumService).generateCurriculum(any(User.class), any(InterviewSchedule.class));
+	}
+
+	@Test
+	@DisplayName("면접 날짜가 동일하면 커리큘럼을 재생성하지 않는다")
+	void updateSchedule_sameDateNotChanged_doesNotRegenerateCurriculum () {
+		UUID scheduleUuid = UUID.randomUUID();
+		User user = User.builder().email("test@example.com").build();
+		ReflectionTestUtils.setField(user, "uuid", USER_UUID);
+
+		LocalDate sameDate = LocalDate.of(2026, 5, 20);
+		InterviewSchedule schedule = InterviewSchedule.create(user, COMPANY_NAME, sameDate);
+		ReflectionTestUtils.setField(schedule, "uuid", scheduleUuid);
+
+		given(scheduleRepository.findByUuid(scheduleUuid)).willReturn(Optional.of(schedule));
+		given(curriculumService.getCurriculumsBySchedule(any(), any(), any())).willReturn(List.of());
+
+		InterviewScheduleUpdateRequest request = new InterviewScheduleUpdateRequest(sameDate);
+		InterviewScheduleResponse response = interviewScheduleService.updateSchedule(USER_UUID, scheduleUuid, request);
+
+		assertThat(response.companyName()).isEqualTo(COMPANY_NAME);
+		verify(curriculumService, never()).deleteAllBySchedule(any());
+		verify(curriculumService, never()).generateCurriculum(any(), any());
+	}
+
+	@Test
+	@DisplayName("수정 요청에 companyName이 없어도 기존 회사명이 유지된다")
+	void updateSchedule_companyNamePreserved () {
+		UUID scheduleUuid = UUID.randomUUID();
+		User user = User.builder().email("test@example.com").build();
+		ReflectionTestUtils.setField(user, "uuid", USER_UUID);
+
+		LocalDate date = LocalDate.of(2026, 5, 20);
+		InterviewSchedule schedule = InterviewSchedule.create(user, COMPANY_NAME, date);
+		ReflectionTestUtils.setField(schedule, "uuid", scheduleUuid);
+
+		given(scheduleRepository.findByUuid(scheduleUuid)).willReturn(Optional.of(schedule));
+		given(curriculumService.getCurriculumsBySchedule(any(), any(), any())).willReturn(List.of());
+
+		InterviewScheduleUpdateRequest request = new InterviewScheduleUpdateRequest(date);
+		InterviewScheduleResponse response = interviewScheduleService.updateSchedule(USER_UUID, scheduleUuid, request);
+
+		assertThat(response.companyName()).isEqualTo(COMPANY_NAME);
+	}
+
+	@Test
+	@DisplayName("다른 사용자의 일정을 수정하려 하면 예외가 발생한다")
+	void updateSchedule_fail_unauthorizedUser () {
+		UUID scheduleUuid = UUID.randomUUID();
+		UUID otherUserUuid = UUID.randomUUID();
+		User owner = User.builder().email("owner@example.com").build();
+		ReflectionTestUtils.setField(owner, "uuid", USER_UUID);
+
+		InterviewSchedule schedule = InterviewSchedule.create(owner, COMPANY_NAME, LocalDate.of(2026, 5, 20));
+		ReflectionTestUtils.setField(schedule, "uuid", scheduleUuid);
+
+		given(scheduleRepository.findByUuid(scheduleUuid)).willReturn(Optional.of(schedule));
+
+		InterviewScheduleUpdateRequest request = new InterviewScheduleUpdateRequest(LocalDate.of(2026, 6, 1));
+
+		assertThatThrownBy(() -> interviewScheduleService.updateSchedule(otherUserUuid, scheduleUuid, request))
+			.isInstanceOf(UnauthorizedCurriculumException.class);
+
+		verify(curriculumService, never()).generateCurriculum(any(), any());
 	}
 
 }

@@ -72,7 +72,7 @@ public class InterviewScheduleService {
 		InterviewSchedule schedule = findSchedule(scheduleUuid);
 		validateOwner(schedule, userUuid);
 		boolean isDateChanged = !schedule.getInterviewDate().equals(request.interviewDate());
-		schedule.update(request.companyName(), request.interviewDate());
+		schedule.update(request.interviewDate());
 		if (isDateChanged) {
 			// 날짜 변경 시 커리큘럼 삭제 후 재생성
 			curriculumService.deleteAllBySchedule(schedule);

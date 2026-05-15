@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.aigo.speech.auth.exception.UserNotFoundException;
 import com.aigo.speech.curriculum.dto.CompletedJobPostingResponse;
@@ -127,12 +129,22 @@ public class InterviewScheduleService {
 			? buildScoreContext(schedule.getUser(), jp)
 			: new ScoreContext("데이터 없음", "데이터 없음", "데이터 없음", "없음", "없음", "없음");
 
-		curriculumService.generateCurriculumContentAsync(
-			schedule.getUuid(),
-			companyName, position, requiredSkills, preferredSkills,
-			scores.filler(), scores.logic(), scores.silence(),
-			scores.fillerTarget(), scores.logicTarget(), scores.silenceTarget()
-		);
+		UUID scheduleUuid = schedule.getUuid();
+		ScoreContext capturedScores = scores;
+		String capturedCompany = companyName, capturedPosition = position;
+		String capturedRequired = requiredSkills, capturedPreferred = preferredSkills;
+
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit () {
+				curriculumService.generateCurriculumContentAsync(
+					scheduleUuid,
+					capturedCompany, capturedPosition, capturedRequired, capturedPreferred,
+					capturedScores.filler(), capturedScores.logic(), capturedScores.silence(),
+					capturedScores.fillerTarget(), capturedScores.logicTarget(), capturedScores.silenceTarget()
+				);
+			}
+		});
 	}
 
 	private ScoreContext buildScoreContext (User user, JobPosting jobPosting) {

@@ -108,4 +108,12 @@ public class UserController {
 		userService.confirmProfileImage(UUID.fromString(uuid), request.getS3Key());
 		return ResponseEntity.ok(ApiResponse.success(null));
 	}
+
+	@DeleteMapping("/me/profile-image")
+	public ResponseEntity<ApiResponse<Void>> deleteProfileImage (
+		@Parameter(hidden = true) @AuthenticationPrincipal String uuid
+	) {
+		userService.deleteProfileImage(UUID.fromString(uuid));
+		return ResponseEntity.ok(ApiResponse.success(null));
+	}
 }

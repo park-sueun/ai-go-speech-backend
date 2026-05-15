@@ -176,4 +176,24 @@ public class UserService {
 			}
 		}
 	}
+
+	@Transactional
+	public void deleteProfileImage (UUID uuid) {
+		User user = userRepository.findByUuid(uuid)
+			.orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+
+		Profile profile = user.getProfile();
+		String oldUrl = profile.getProfileImageUrl();
+
+		profile.updateProfileImage(null);
+
+		if (oldUrl != null) {
+			String oldKey = s3Service.extractKeyFromUrl(oldUrl);
+			if (oldKey != null && oldKey.startsWith("profiles/")) {
+				s3Service.deleteObject(oldKey);
+			}
+		}
+		log.info("사용자 프로필 이미지 삭제 및 기본 프로필 설정 완료(userId: {}", uuid);
+
+	}
 }

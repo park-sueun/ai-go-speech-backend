@@ -84,11 +84,19 @@ public class CurriculumService {
 				)
 			);
 
-			String[] lines = aiService.complete(aiRequest).content().strip().split("\n");
+			String rawContent = aiService.complete(aiRequest).content();
+			if (rawContent == null || rawContent.isBlank()) {
+				log.warn("[Curriculum] AI 응답이 비어있습니다. scheduleUuid={}", req.scheduleUuid());
+				return;
+			}
+
+			String[] lines = rawContent.strip().split("\n");
 
 			for (int i = 0; i < Math.min(curriculums.size(), lines.length); i++) {
 				String line = lines[i].strip().replaceAll("^\\d+[.)\\s]+", "");
-				curriculums.get(i).updateContent(line);
+				if (!line.isBlank()) {
+					curriculums.get(i).updateContent(line);
+				}
 			}
 
 			log.info("[Curriculum] AI 커리큘럼 생성 완료. scheduleUuid={}, count={}", req.scheduleUuid(), curriculums.size());

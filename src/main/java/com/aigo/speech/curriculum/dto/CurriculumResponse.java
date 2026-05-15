@@ -26,7 +26,7 @@ public record CurriculumResponse(
 			curriculum.getUuid(),
 			jobPostingUuid,
 			curriculum.getInterviewSchedule().getCompanyName(),
-			curriculum.getContent().getTitle(),
+			curriculum.getContent(),
 			curriculum.getScheduleDate(),
 			isPast
 		);

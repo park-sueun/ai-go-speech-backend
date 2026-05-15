@@ -8,12 +8,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 
 import com.aigo.speech.curriculum.entity.InterviewSchedule;
+import com.aigo.speech.jobposting.entity.JobPosting;
 import com.aigo.speech.user.entity.User;
 
 public interface InterviewScheduleRepository extends JpaRepository<InterviewSchedule, Long> {
 	Optional<InterviewSchedule> findByUuid (UUID uuid);
 
 	List<InterviewSchedule> findByUserOrderByInterviewDateAsc (User user);
+
+	boolean existsByJobPosting (JobPosting jobPosting);
 
 	@Modifying
 	void deleteAllByUser (User user);

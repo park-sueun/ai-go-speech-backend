@@ -16,6 +16,7 @@ import com.aigo.speech.auth.exception.PasswordMismatchException;
 import com.aigo.speech.auth.exception.SamePasswordException;
 import com.aigo.speech.auth.exception.TokenExpiredException;
 import com.aigo.speech.auth.exception.UserNotFoundException;
+import com.aigo.speech.curriculum.exception.DuplicateScheduleException;
 import com.aigo.speech.curriculum.exception.UnauthorizedCurriculumException;
 import com.aigo.speech.global.dto.ApiResponse;
 import com.aigo.speech.interview.exception.InterviewReportNotFoundException;
@@ -177,6 +178,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(UnauthorizedCurriculumException.class)
 	public ResponseEntity<ApiResponse<?>> handleIllegalArgument (UnauthorizedCurriculumException e) {
 		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(DuplicateScheduleException.class)
+	public ResponseEntity<ApiResponse<?>> handleDuplicateSchedule (DuplicateScheduleException e) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(e.getMessage()));
 	}
 
 	@ExceptionHandler(RankingUnavailableException.class)

@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.aigo.speech.interview.entity.InterviewSession;
 import com.aigo.speech.interview.entity.InterviewStatus;
@@ -19,6 +21,12 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
 	boolean existsByUserAndJobPostingAndStatus(User user, JobPosting jobPosting, InterviewStatus status);
 	long countByUserAndJobPostingAndStatus(User user, JobPosting jobPosting, InterviewStatus status);
 	List<InterviewSession> findByUserAndJobPostingOrderByCreatedAtAsc(User user, JobPosting jobPosting);
+	List<InterviewSession> findByUserAndJobPostingAndStatus(User user, JobPosting jobPosting, InterviewStatus status);
+
+	Optional<InterviewSession> findTopByUserAndJobPostingAndStatusOrderByCreatedAtDesc(User user, JobPosting jobPosting, InterviewStatus status);
+
+	@Query("SELECT DISTINCT s.jobPosting FROM InterviewSession s WHERE s.user = :user AND s.status = :status AND s.jobPosting IS NOT NULL")
+	List<JobPosting> findDistinctJobPostingsByUserAndStatus(@Param("user") User user, @Param("status") InterviewStatus status);
 
 	@Modifying
 	void deleteAllByUser(User user);

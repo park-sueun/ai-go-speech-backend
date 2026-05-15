@@ -1,5 +1,7 @@
 package com.aigo.speech.auth.service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -35,6 +37,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 	private final ProfileRepository profileRepository;
 	private final TermsRepository termsRepository;
 	private final UserTermsAgreementRepository userTermsAgreementRepository;
+	private final SocialUnlinkService socialUnlinkService;
 
 	@Override
 	@Transactional
@@ -51,6 +54,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
 		User user = saveOrUpdateUser(attributes);
 		Profile profile = saveOrUpdateProfile(user, attributes);
+
+		Instant expiresAt = request.getAccessToken().getExpiresAt();
+		long ttl = (expiresAt != null)
+			? Math.max(ChronoUnit.SECONDS.between(Instant.now(), expiresAt), 0)
+			: 3600L;
+		socialUnlinkService.saveOAuthToken(user.getUuid(), request.getAccessToken().getTokenValue(), ttl);
 
 		Map<String, Object> userAttributes = Map.of(
 			userNameAttributeName, attributes.getProviderId(),
@@ -78,8 +87,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 				String email = attributes.getEmail();
 				if (email != null && userRepository.existsByEmail(email)) {
 					throw new OAuth2AuthenticationException(
-						new OAuth2Error("email_already_exists",
-							"이미 가입된 이메일입니다. 기존 방법으로 로그인해주세요.", null));
+						new OAuth2Error(
+							"email_already_exists",
+							"이미 가입된 이메일입니다. 기존 방법으로 로그인해주세요.", null
+						));
 				}
 				User newUser = userRepository.save(attributes.toEntity());
 				agreeToRequiredTerms(newUser);
@@ -92,7 +103,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 			.filter(Terms::getRequired)
 			.collect(Collectors.toList());
 
-		if (requiredTerms.isEmpty()) return;
+		if (requiredTerms.isEmpty())
+			return;
 
 		List<UserTermsAgreement> agreements = requiredTerms.stream()
 			.map(terms -> new UserTermsAgreement(user, terms))
@@ -107,9 +119,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 				String oauthNickname = attributes.getNickname();
 				if (!profile.getNickname().equals(oauthNickname)
 					&& !profileRepository.existsByNickname(oauthNickname)) {
-					profile.update(oauthNickname, attributes.getProfileImage());
-				} else {
-					profile.updateProfileImage(attributes.getProfileImage());
+					profile.updateNickname(oauthNickname);
 				}
 				return profile;
 			})
@@ -123,7 +133,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 	}
 
 	private String resolveUniqueNickname (String base) {
-		if (!profileRepository.existsByNickname(base)) return base;
+		if (!profileRepository.existsByNickname(base))
+			return base;
 		String candidate;
 		do {
 			int suffix = ThreadLocalRandom.current().nextInt(1000, 10000);

@@ -91,13 +91,13 @@ public class UserController {
 	}
 
 	@PostMapping("/profile-image/presigned-url")
-	public ResponseEntity<PreSignedUrlResponse> getPreSignedUrl (
+	public ResponseEntity<ApiResponse<PreSignedUrlResponse>> getPreSignedUrl (
 		@AuthenticationPrincipal String uuid,
 		@Valid @RequestBody PreSignedUrlRequest request
 	) {
 		PreSignedUrlResponse response =
 			userService.getPreSignedUploadUrl(UUID.fromString(uuid), request);
-		return ResponseEntity.ok(response);
+		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
 	@PatchMapping("/profile-image")

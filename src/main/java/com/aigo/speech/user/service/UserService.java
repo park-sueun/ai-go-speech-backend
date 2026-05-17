@@ -169,7 +169,7 @@ public class UserService {
 		profile.updateProfileImage(newPublicUrl);
 
 		// 기존 이미지 S3에서 삭제
-		if (profile.getProfileImageUrl() != null) {
+		if (oldUrl != null) {
 			String oldKey = s3Service.extractKeyFromUrl(oldUrl);
 			if (oldKey != null && oldKey.startsWith("profiles/")) {
 				s3Service.deleteObject(oldKey);

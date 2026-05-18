@@ -115,17 +115,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
 	private Profile saveOrUpdateProfile (User user, OAuthAttributes attributes) {
 		return profileRepository.findByUser(user)
-			.map(profile -> {
-				String oauthNickname = attributes.getNickname();
-				if (!profile.getNickname().equals(oauthNickname)
-					&& !profileRepository.existsByNickname(oauthNickname)) {
-					profile.update(oauthNickname);
-					if (attributes.getProviderId() != null) {
-						profile.updateProfileImage(attributes.getProfileImage());
-					}
-				}
-				return profile;
-			})
 			.orElseGet(() -> profileRepository.save(
 				Profile.builder()
 					.user(user)

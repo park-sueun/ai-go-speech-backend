@@ -5,6 +5,9 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import java.time.LocalDate;
+
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.aigo.speech.curriculum.dto.CompletedJobPostingResponse;
@@ -42,10 +46,11 @@ public class InterviewScheduleController {
 
 	@GetMapping
 	public ResponseEntity<ApiResponse<List<InterviewScheduleListResponse>>> getSchedules (
-		Authentication authentication
+		Authentication authentication,
+		@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from
 	) {
 		UUID userUuid = UUID.fromString(authentication.getName());
-		return ResponseEntity.ok(ApiResponse.success(scheduleService.getSchedules(userUuid)));
+		return ResponseEntity.ok(ApiResponse.success(scheduleService.getSchedules(userUuid, from)));
 	}
 
 	@GetMapping("/job-postings")

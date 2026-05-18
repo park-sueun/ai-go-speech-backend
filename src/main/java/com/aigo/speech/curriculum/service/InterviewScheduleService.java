@@ -46,13 +46,13 @@ public class InterviewScheduleService {
 	private final InterviewReportRepository reportRepository;
 	private final JobPostingRepository jobPostingRepository;
 
-	public List<InterviewScheduleListResponse> getSchedules (UUID userUuid) {
+	public List<InterviewScheduleListResponse> getSchedules (UUID userUuid, LocalDate from) {
 		User user = userRepository.findByUuid(userUuid)
 			.orElseThrow(() -> new UserNotFoundException("존재하지 않는 사용자입니다."));
-		return scheduleRepository.findByUserOrderByInterviewDateAsc(user)
-			.stream()
-			.map(InterviewScheduleListResponse::from)
-			.toList();
+		List<InterviewSchedule> schedules = from != null
+			? scheduleRepository.findByUserAndInterviewDateGreaterThanEqualOrderByInterviewDateAsc(user, from)
+			: scheduleRepository.findByUserOrderByInterviewDateAsc(user);
+		return schedules.stream().map(InterviewScheduleListResponse::from).toList();
 	}
 
 	public InterviewScheduleResponse getSchedule (UUID userUuid, UUID scheduleUuid) {

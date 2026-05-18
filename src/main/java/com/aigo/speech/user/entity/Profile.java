@@ -37,7 +37,7 @@ public class Profile extends BaseTimeEntity {
 	@Column(unique = true, nullable = false)
 	private String nickname;
 
-	@Column(name = "profile_image_url", nullable = false)
+	@Column(name = "profile_image_url")
 	private String profileImageUrl;
 
 	@Builder
@@ -52,7 +52,7 @@ public class Profile extends BaseTimeEntity {
 		this.profileImageUrl = profileImageUrl;
 	}
 
-	public void updateNickname (String nickname) {
+	public void update (String nickname) {
 		this.nickname = nickname;
 	}
 

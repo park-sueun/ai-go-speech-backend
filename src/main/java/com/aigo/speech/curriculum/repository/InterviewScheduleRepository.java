@@ -1,5 +1,6 @@
 package com.aigo.speech.curriculum.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,6 +16,8 @@ public interface InterviewScheduleRepository extends JpaRepository<InterviewSche
 	Optional<InterviewSchedule> findByUuid (UUID uuid);
 
 	List<InterviewSchedule> findByUserOrderByInterviewDateAsc (User user);
+
+	List<InterviewSchedule> findByUserAndInterviewDateGreaterThanEqualOrderByInterviewDateAsc (User user, LocalDate from);
 
 	boolean existsByJobPosting (JobPosting jobPosting);
 

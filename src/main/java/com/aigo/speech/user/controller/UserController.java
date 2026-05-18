@@ -17,6 +17,9 @@ import com.aigo.speech.auth.dto.EmailVerificationConfirmRequest;
 import com.aigo.speech.auth.dto.EmailVerificationRequest;
 import com.aigo.speech.auth.service.EmailVerificationService;
 import com.aigo.speech.global.dto.ApiResponse;
+import com.aigo.speech.s3.dto.ConfirmProfileImageRequest;
+import com.aigo.speech.s3.dto.PreSignedUrlRequest;
+import com.aigo.speech.s3.dto.PreSignedUrlResponse;
 import com.aigo.speech.user.dto.UserDto.UpdateProfileRequest;
 import com.aigo.speech.user.dto.UserDto.UserInfoResponse;
 import com.aigo.speech.user.service.UserService;
@@ -84,6 +87,33 @@ public class UserController {
 		@Parameter(hidden = true) @AuthenticationPrincipal String uuid
 	) {
 		userService.deleteUser(UUID.fromString(uuid));
+		return ResponseEntity.ok(ApiResponse.success(null));
+	}
+
+	@PostMapping("/profile-image/presigned-url")
+	public ResponseEntity<ApiResponse<PreSignedUrlResponse>> getPreSignedUrl (
+		@AuthenticationPrincipal String uuid,
+		@Valid @RequestBody PreSignedUrlRequest request
+	) {
+		PreSignedUrlResponse response =
+			userService.getPreSignedUploadUrl(UUID.fromString(uuid), request);
+		return ResponseEntity.ok(ApiResponse.success(response));
+	}
+
+	@PatchMapping("/profile-image")
+	public ResponseEntity<ApiResponse<Void>> confirmProfileImage (
+		@Parameter(hidden = true) @AuthenticationPrincipal String uuid,
+		@Valid @RequestBody ConfirmProfileImageRequest request
+	) {
+		userService.confirmProfileImage(UUID.fromString(uuid), request.getS3Key());
+		return ResponseEntity.ok(ApiResponse.success(null));
+	}
+
+	@DeleteMapping("/me/profile-image")
+	public ResponseEntity<ApiResponse<Void>> deleteProfileImage (
+		@Parameter(hidden = true) @AuthenticationPrincipal String uuid
+	) {
+		userService.deleteProfileImage(UUID.fromString(uuid));
 		return ResponseEntity.ok(ApiResponse.success(null));
 	}
 }

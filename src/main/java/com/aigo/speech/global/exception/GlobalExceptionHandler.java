@@ -32,6 +32,7 @@ import com.aigo.speech.mail.exception.MailSendException;
 import com.aigo.speech.mail.exception.MailVerificationException;
 import com.aigo.speech.question.exception.QuestionNotFoundException;
 import com.aigo.speech.ranking.exception.RankingUnavailableException;
+import com.aigo.speech.s3.exception.S3InvalidKeyException;
 import com.aigo.speech.terms.exception.InvalidTermsAgreementException;
 
 @RestControllerAdvice
@@ -188,5 +189,10 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(RankingUnavailableException.class)
 	public ResponseEntity<ApiResponse<?>> handleRankingUnavailable (RankingUnavailableException e) {
 		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ApiResponse.fail(e.getMessage()));
+	}
+
+	@ExceptionHandler(S3InvalidKeyException.class)
+	public ResponseEntity<ApiResponse<?>> handleS3InvalidKey (S3InvalidKeyException e) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(e.getMessage()));
 	}
 }

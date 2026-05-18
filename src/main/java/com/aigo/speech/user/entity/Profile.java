@@ -52,7 +52,7 @@ public class Profile extends BaseTimeEntity {
 		this.profileImageUrl = profileImageUrl;
 	}
 
-	public void updateNickname (String nickname) {
+	public void update (String nickname) {
 		this.nickname = nickname;
 	}
 

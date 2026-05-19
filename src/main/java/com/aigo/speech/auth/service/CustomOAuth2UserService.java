@@ -53,7 +53,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		OAuthAttributes attributes = OAuthAttributes.of(registrationId, oAuth2User.getAttributes());
 
 		User user = saveOrUpdateUser(attributes);
-		Profile profile = saveOrUpdateProfile(user, attributes);
+		Profile profile = findOrCreateProfile(user, attributes);
 
 		Instant expiresAt = request.getAccessToken().getExpiresAt();
 		long ttl = (expiresAt != null)
@@ -113,19 +113,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		userTermsAgreementRepository.saveAll(agreements);
 	}
 
-	private Profile saveOrUpdateProfile (User user, OAuthAttributes attributes) {
+	private Profile findOrCreateProfile (User user, OAuthAttributes attributes) {
 		return profileRepository.findByUser(user)
-			.map(profile -> {
-				String oauthNickname = attributes.getNickname();
-				if (!profile.getNickname().equals(oauthNickname)
-					&& !profileRepository.existsByNickname(oauthNickname)) {
-					profile.update(oauthNickname);
-					if (attributes.getProviderId() != null) {
-						profile.updateProfileImage(attributes.getProfileImage());
-					}
-				}
-				return profile;
-			})
 			.orElseGet(() -> profileRepository.save(
 				Profile.builder()
 					.user(user)

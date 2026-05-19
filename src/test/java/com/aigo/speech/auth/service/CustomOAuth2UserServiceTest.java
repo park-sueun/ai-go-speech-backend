@@ -42,6 +42,7 @@ class CustomOAuth2UserServiceTest {
 	@Mock ProfileRepository profileRepository;
 	@Mock TermsRepository termsRepository;
 	@Mock UserTermsAgreementRepository userTermsAgreementRepository;
+	@Mock SocialUnlinkService socialUnlinkService;
 
 	CustomOAuth2UserService service;
 
@@ -66,7 +67,7 @@ class CustomOAuth2UserServiceTest {
 	@BeforeEach
 	void setUp () {
 		service = new CustomOAuth2UserService(
-			userRepository, profileRepository, termsRepository, userTermsAgreementRepository
+			userRepository, profileRepository, termsRepository, userTermsAgreementRepository, socialUnlinkService
 		) {
 			@Override
 			protected OAuth2User fetchOAuth2User (OAuth2UserRequest request) {
@@ -132,7 +133,7 @@ class CustomOAuth2UserServiceTest {
 	}
 
 	@Test
-	@DisplayName("기존 유저 재로그인 시 프로필 업데이트, 약관 동의 저장 없음")
+	@DisplayName("기존 유저 재로그인 시 닉네임/이미지 유지, 약관 동의 저장 없음")
 	void loadUser_기존유저_프로필_업데이트 () {
 		User user = savedUser();
 		Profile existingProfile = savedProfile(user, "구이름");
@@ -145,8 +146,8 @@ class CustomOAuth2UserServiceTest {
 
 		then(userRepository).should(never()).save(any(User.class));
 		then(termsRepository).should(never()).findAllByIsActiveTrue();
-		assertThat(existingProfile.getNickname()).isEqualTo("홍길동");
-		assertThat(existingProfile.getProfileImageUrl()).isEqualTo("http://picture.url");
+		assertThat(existingProfile.getNickname()).isEqualTo("구이름");
+		assertThat(existingProfile.getProfileImageUrl()).isEqualTo("http://old.url");
 	}
 
 	@Test
